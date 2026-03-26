@@ -275,9 +275,10 @@ body{font-family:'Noto Sans JP',sans-serif;color:var(--ink);}
     </div>
   </div>
 
-  <!-- File inputs - iOS Safari compatible -->
-  <input type="file" id="file-in" accept="image/*" style="display:none" onchange="handleFile(this)">
+  <!-- File inputs -->
+  <input type="file" id="file-gallery" accept="image/*" style="display:none" onchange="handleFile(this)">
   <input type="file" id="file-camera" accept="image/*" capture="environment" style="display:none" onchange="handleFile(this)">
+  <input type="file" id="file-any" accept="image/*,application/pdf" style="display:none" onchange="handleFile(this)">
 
   <!-- Scroll area -->
   <div class="scroll" id="scroll">
@@ -309,15 +310,10 @@ body{font-family:'Noto Sans JP',sans-serif;color:var(--ink);}
         <div class="sum-card fix"><div class="sum-lbl">固定費</div><div class="sum-val" id="s-fix">¥0</div></div>
       </div>
 
-      <!-- Scan buttons -->
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px;">
-        <button class="scan-btn" style="font-size:13px;padding:14px 8px;" onclick="openCamera()">
-          <span class="scan-icon">📷</span>カメラ撮影
-        </button>
-        <button class="scan-btn" style="font-size:13px;padding:14px 8px;background:var(--ink);border-color:var(--ink);" onclick="openGallery()">
-          <span class="scan-icon">🖼️</span>写真から選ぶ
-        </button>
-      </div>
+      <!-- Scan button -->
+      <button class="scan-btn" onclick="openScanSheet()" style="margin-bottom:16px;">
+        <span class="scan-icon">📷</span>レシートをスキャン
+      </button>
 
       <!-- Error -->
       <div class="error-box" id="error-box"></div>
@@ -346,6 +342,40 @@ body{font-family:'Noto Sans JP',sans-serif;color:var(--ink);}
     <div class="bnav-item" onclick="goPage('family',this)"><div class="bnav-icon">👨‍👩‍👧</div>家族</div>
     <div class="bnav-item" onclick="goPage('home',this)"><div class="bnav-icon">📊</div>レポート</div>
     <div class="bnav-item" onclick="goPage('home',this)"><div class="bnav-icon">⚙️</div>設定</div>
+  </div>
+</div>
+
+<!-- Scan action sheet -->
+<div class="modal-bg" id="scan-sheet" onclick="if(event.target===this)closeModal('scan-sheet')">
+  <div class="modal" style="max-height:auto;">
+    <div class="sheet-handle"></div>
+    <div style="padding:16px 18px 8px;">
+      <div style="font-size:15px;font-weight:700;margin-bottom:4px;">レシートを追加</div>
+      <div style="font-size:12px;color:var(--ink3);">スキャン方法を選んでください</div>
+    </div>
+    <div style="padding:8px 18px 0;">
+      <button onclick="closeModal('scan-sheet');setTimeout(()=>document.getElementById('file-camera').click(),200)"
+        style="width:100%;padding:15px 16px;margin-bottom:10px;border-radius:var(--rsm);background:var(--surface2);border:1px solid var(--border);font-size:15px;font-weight:600;color:var(--ink);cursor:pointer;font-family:inherit;display:flex;align-items:center;gap:12px;text-align:left;">
+        <span style="font-size:24px;">📷</span>
+        <div><div>カメラで撮影</div><div style="font-size:11px;color:var(--ink3);font-weight:400;">今すぐ撮影する</div></div>
+      </button>
+      <button onclick="closeModal('scan-sheet');setTimeout(()=>document.getElementById('file-gallery').click(),200)"
+        style="width:100%;padding:15px 16px;margin-bottom:10px;border-radius:var(--rsm);background:var(--surface2);border:1px solid var(--border);font-size:15px;font-weight:600;color:var(--ink);cursor:pointer;font-family:inherit;display:flex;align-items:center;gap:12px;text-align:left;">
+        <span style="font-size:24px;">🖼️</span>
+        <div><div>写真アルバムから選ぶ</div><div style="font-size:11px;color:var(--ink3);font-weight:400;">保存済みの写真を使う</div></div>
+      </button>
+      <button onclick="closeModal('scan-sheet');setTimeout(()=>document.getElementById('file-any').click(),200)"
+        style="width:100%;padding:15px 16px;margin-bottom:10px;border-radius:var(--rsm);background:var(--surface2);border:1px solid var(--border);font-size:15px;font-weight:600;color:var(--ink);cursor:pointer;font-family:inherit;display:flex;align-items:center;gap:12px;text-align:left;">
+        <span style="font-size:24px;">📁</span>
+        <div><div>ファイルから選ぶ</div><div style="font-size:11px;color:var(--ink3);font-weight:400;">Files アプリなど</div></div>
+      </button>
+    </div>
+    <div style="padding:8px 18px;padding-bottom:calc(env(safe-area-inset-bottom) + 16px);">
+      <button onclick="closeModal('scan-sheet')"
+        style="width:100%;padding:14px;border-radius:var(--rsm);background:var(--surface3);border:none;font-size:15px;font-weight:700;color:var(--ink2);cursor:pointer;font-family:inherit;">
+        キャンセル
+      </button>
+    </div>
   </div>
 </div>
 
@@ -596,8 +626,9 @@ function renderMembers(){
 }
 
 // ── File / AI ──────────────────────────────
-function openCamera(){document.getElementById('file-camera').click();}
-function openGallery(){document.getElementById('file-in').click();}
+function openScanSheet(){document.getElementById('scan-sheet').classList.add('open');}
+function openCamera(){closeModal('scan-sheet');document.getElementById('file-camera').click();}
+function openGallery(){closeModal('scan-sheet');document.getElementById('file-gallery').click();}
 
 async function handleFile(input){
   if(!input.files||!input.files.length)return;
@@ -653,10 +684,27 @@ async function handleFile(input){
 
 function toBase64(file){
   return new Promise((res,rej)=>{
-    const r=new FileReader();
-    r.onload=()=>res(r.result.split(',')[1]);
-    r.onerror=()=>rej(new Error('ファイル読み込み失敗'));
-    r.readAsDataURL(file);
+    // Compress image before sending to avoid server size limits
+    const img=new Image();
+    const url=URL.createObjectURL(file);
+    img.onload=()=>{
+      URL.revokeObjectURL(url);
+      const MAX=1200;
+      let w=img.width, h=img.height;
+      if(w>MAX||h>MAX){
+        if(w>h){h=Math.round(h*MAX/w);w=MAX;}
+        else{w=Math.round(w*MAX/h);h=MAX;}
+      }
+      const canvas=document.createElement('canvas');
+      canvas.width=w; canvas.height=h;
+      const ctx=canvas.getContext('2d');
+      ctx.drawImage(img,0,0,w,h);
+      // Use JPEG with 0.85 quality for smaller size
+      const data=canvas.toDataURL('image/jpeg',0.85).split(',')[1];
+      res(data);
+    };
+    img.onerror=()=>rej(new Error('画像の読み込みに失敗しました'));
+    img.src=url;
   });
 }
 
