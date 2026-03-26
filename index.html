@@ -275,8 +275,9 @@ body{font-family:'Noto Sans JP',sans-serif;color:var(--ink);}
     </div>
   </div>
 
-  <!-- Hidden file input -->
-  <input type="file" id="file-in" accept="image/*" capture="environment" style="display:none" onchange="handleFile(this)">
+  <!-- File inputs - iOS Safari compatible -->
+  <input type="file" id="file-in" accept="image/*" style="display:none" onchange="handleFile(this)">
+  <input type="file" id="file-camera" accept="image/*" capture="environment" style="display:none" onchange="handleFile(this)">
 
   <!-- Scroll area -->
   <div class="scroll" id="scroll">
@@ -308,10 +309,15 @@ body{font-family:'Noto Sans JP',sans-serif;color:var(--ink);}
         <div class="sum-card fix"><div class="sum-lbl">固定費</div><div class="sum-val" id="s-fix">¥0</div></div>
       </div>
 
-      <!-- Scan button -->
-      <button class="scan-btn" onclick="document.getElementById('file-in').click()">
-        <span class="scan-icon">📷</span>レシートを撮影してスキャン
-      </button>
+      <!-- Scan buttons -->
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px;">
+        <button class="scan-btn" style="font-size:13px;padding:14px 8px;" onclick="openCamera()">
+          <span class="scan-icon">📷</span>カメラ撮影
+        </button>
+        <button class="scan-btn" style="font-size:13px;padding:14px 8px;background:var(--ink);border-color:var(--ink);" onclick="openGallery()">
+          <span class="scan-icon">🖼️</span>写真から選ぶ
+        </button>
+      </div>
 
       <!-- Error -->
       <div class="error-box" id="error-box"></div>
@@ -590,12 +596,22 @@ function renderMembers(){
 }
 
 // ── File / AI ──────────────────────────────
+function openCamera(){document.getElementById('file-camera').click();}
+function openGallery(){document.getElementById('file-in').click();}
+
 async function handleFile(input){
   if(!input.files||!input.files.length)return;
   const file=input.files[0];
   input.value='';
-  showOverlay();
   hideError();
+
+  // Validate it's actually an image
+  if(!file.type.startsWith('image/')){
+    showError('❌ 画像ファイルを選択してください');
+    return;
+  }
+
+  showOverlay();
 
   const steps=['画像を読み込み中...','文字認識（OCR）中...','商品・金額を抽出中...','カテゴリをAI分類中...','完了 ✓'];
   let si=0;
@@ -612,7 +628,6 @@ async function handleFile(input){
     const b64=await toBase64(file);
     const mt=file.type||'image/jpeg';
 
-    // Call our Vercel API proxy
     const res=await fetch('/api/analyze',{
       method:'POST',
       headers:{'Content-Type':'application/json'},
@@ -622,8 +637,8 @@ async function handleFile(input){
     clearInterval(iv);
 
     if(!res.ok){
-      const err=await res.json();
-      throw new Error(err.error||'API error');
+      const err=await res.json().catch(()=>({error:'サーバーエラー'}));
+      throw new Error(err.error||`HTTP ${res.status}`);
     }
 
     const data=await res.json();
