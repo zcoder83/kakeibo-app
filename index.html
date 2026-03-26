@@ -441,32 +441,43 @@ const COLORS=['#c8490a','#1a5fa8','#2d7a4f','#7c3aed','#d97706','#db2777'];
 const yen=n=>'¥'+Math.abs(n).toLocaleString('ja-JP');
 
 let periodMode='month', curOffset=0, selCat='食料品', selType2='expense', selColor=COLORS[0];
-let pendingReceipt=null, nextId=20;
+let pendingReceipt=null;
 const now=new Date();
 
-function dayStr(monthOff,day){
-  const dt=new Date(now.getFullYear(),now.getMonth()+monthOff,day);
-  return dt.toISOString().split('T')[0];
+function dayStr(monthOff, day) {
+  const dt = new Date(now.getFullYear(), now.getMonth() + monthOff, day);
+  const y = dt.getFullYear();
+  const m = String(dt.getMonth() + 1).padStart(2, '0');
+  const d = String(dt.getDate()).padStart(2, '0');
+  return `${y}-${m}-${d}`;
 }
 
-let family=[
-  {id:'f1',name:'パパ',role:'パパ',color:'#1a5fa8'},
-  {id:'f2',name:'ママ',role:'ママ',color:'#c8490a'},
+// ── LocalStorage persistence ────────────────
+function saveData() {
+  try {
+    localStorage.setItem('kakeibo_txns', JSON.stringify(txns));
+    localStorage.setItem('kakeibo_family', JSON.stringify(family));
+    localStorage.setItem('kakeibo_nextId', String(nextId));
+  } catch(e) {}
+}
+
+function loadData() {
+  try {
+    const t = localStorage.getItem('kakeibo_txns');
+    const f = localStorage.getItem('kakeibo_family');
+    const n = localStorage.getItem('kakeibo_nextId');
+    if (t) txns   = JSON.parse(t);
+    if (f) family = JSON.parse(f);
+    if (n) nextId = parseInt(n);
+  } catch(e) {}
+}
+
+// ── Default empty state ─────────────────────
+let family = [
+  {id:'f1', name:'自分', role:'本人', color:'#1a5fa8'},
 ];
-let txns=[
-  {id:1,date:dayStr(0,3),name:'イオン',amount:4280,type:'expense',cat:'食料品',who:'f1',fixed:false},
-  {id:2,date:dayStr(0,4),name:'スタバ',amount:680,type:'expense',cat:'外食',who:'f2',fixed:false},
-  {id:3,date:dayStr(0,5),name:'給料',amount:320000,type:'income',cat:'収入',who:'f1',fixed:false},
-  {id:4,date:dayStr(0,5),name:'給料',amount:260000,type:'income',cat:'収入',who:'f2',fixed:false},
-  {id:5,date:dayStr(0,6),name:'Suicaチャージ',amount:3000,type:'expense',cat:'交通',who:'f1',fixed:false},
-  {id:6,date:dayStr(0,7),name:'Netflix',amount:1490,type:'expense',cat:'固定費',who:'f1',fixed:true},
-  {id:7,date:dayStr(0,7),name:'家賃',amount:85000,type:'expense',cat:'固定費',who:'f1',fixed:true},
-  {id:8,date:dayStr(0,8),name:'マツキヨ',amount:2340,type:'expense',cat:'日用品',who:'f2',fixed:false},
-  {id:9,date:dayStr(0,10),name:'松屋',amount:530,type:'expense',cat:'外食',who:'f1',fixed:false},
-  {id:10,date:dayStr(0,12),name:'クリニック',amount:2160,type:'expense',cat:'医療',who:'f2',fixed:false},
-  {id:11,date:dayStr(0,14),name:'映画館',amount:1900,type:'expense',cat:'エンタメ',who:'f1',fixed:false},
-  {id:12,date:dayStr(0,16),name:'電気代',amount:8400,type:'expense',cat:'固定費',who:'f1',fixed:true},
-];
+let txns = [];
+let nextId = 1;
 
 // ── Period ─────────────────────────────────
 function getPeriodLabel(){
@@ -676,6 +687,7 @@ function confirmSheet(){
       cat:item.cat||'その他',who:family[0]?.id||'f1',fixed:false});
   });
   closeSheet();
+  saveData();
   renderAll();
   toast(`✓ ${pendingReceipt.store}を登録しました`);
 }
@@ -716,7 +728,9 @@ function submitAdd(){
   const fixed=document.getElementById('a-fixed').checked;
   if(!amt||!name||!date){toast('⚠ 金額・内容・日付を入力してください');return;}
   txns.unshift({id:nextId++,date,name,amount:amt,type:selType2,cat:selCat,who,fixed});
-  closeAdd();renderAll();toast('✓ 登録しました');
+  saveData();
+  closeAdd();renderAll();
+  toast('✓ 登録しました');
 }
 
 // ── Family ─────────────────────────────────
@@ -738,7 +752,10 @@ function submitMember(){
   const role=document.getElementById('m-role').value;
   if(!name){toast('⚠ 名前を入力してください');return;}
   family.push({id:'f'+Date.now(),name,role,color:selColor});
-  closeModal('member-modal');renderAll();toast(`✓ ${name}を追加しました`);
+  closeModal('member-modal');
+  saveData();
+  renderFamily();renderAll();
+  toast(`✓ ${name}を追加しました`);
 }
 function closeModal(id){document.getElementById(id).classList.remove('open');}
 
@@ -828,13 +845,16 @@ function submitIncome(){
   });
 
   closeModal('income-modal');
+  saveData();
   renderAll();
   toast(`✓ 収入を更新しました（${added}件）`);
 }
 
 // ── Init ───────────────────────────────────
+loadData();  // localStorage からデータを復元
 document.getElementById('page-sub').textContent=
   `${now.getFullYear()}年${now.getMonth()+1}月${now.getDate()}日`;
+renderFamily();
 renderAll();
 </script>
 </body>
