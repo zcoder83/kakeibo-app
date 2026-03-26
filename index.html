@@ -1117,6 +1117,7 @@ async function openMemberDetail(uid,name,role,color){
             ${adminBtn}
           </div>
         </div>`;
+      }).join('');
       return `<div style="margin-bottom:6px;">
         <div style="font-size:11px;font-weight:700;color:var(--ink3);padding:6px 0 4px;display:flex;justify-content:space-between;">
           <span>${lbl}</span>${tot?`<span style="color:var(--accent);">-${yen(tot)}</span>`:''}
