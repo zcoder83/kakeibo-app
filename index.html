@@ -332,6 +332,17 @@ body{font-family:'Noto Sans JP',sans-serif;color:var(--ink);}
       <div class="sec-hd">家族メンバー</div>
       <div id="member-list"></div>
       <button class="add-member-card" onclick="openAddMember()">＋ メンバーを追加</button>
+
+      <div style="margin-top:20px;padding:16px;background:var(--surface);border:1px solid var(--border);border-radius:var(--r);">
+        <div style="font-size:13px;font-weight:700;margin-bottom:12px;">👨‍👩‍👧 家族で共有</div>
+        <div style="font-size:12px;color:var(--ink3);margin-bottom:12px;">家族のスマホでも同じ家計簿を使えます</div>
+        <button onclick="showFamilyCode()" style="width:100%;padding:12px;border-radius:var(--rsm);background:var(--accent);border:none;color:#fff;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit;margin-bottom:8px;">
+          共有コードを表示
+        </button>
+        <button onclick="joinWithCode()" style="width:100%;padding:12px;border-radius:var(--rsm);background:var(--surface2);border:1px solid var(--border2);color:var(--ink2);font-size:14px;font-weight:600;cursor:pointer;font-family:inherit;">
+          コードで参加する
+        </button>
+      </div>
     </div>
 
   </div>
@@ -488,32 +499,73 @@ function dayStr(monthOff, day) {
   return `${y}-${m}-${d}`;
 }
 
-// ── LocalStorage persistence ────────────────
-function saveData() {
-  try {
-    localStorage.setItem('kakeibo_txns', JSON.stringify(txns));
-    localStorage.setItem('kakeibo_family', JSON.stringify(family));
-    localStorage.setItem('kakeibo_nextId', String(nextId));
-  } catch(e) {}
+// ── Supabase DB ─────────────────────────────
+async function dbCall(action, data={}) {
+  const res = await fetch('/api/db', {
+    method: 'POST',
+    headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({ action, familyCode, data })
+  });
+  if (!res.ok) throw new Error('DB error');
+  return res.json();
 }
 
-function loadData() {
+// ── Family code system ──────────────────────
+let familyCode = localStorage.getItem('kakeibo_family_code') || '';
+
+function generateCode() {
+  return Math.random().toString(36).substring(2,8).toUpperCase();
+}
+
+async function initFamily() {
+  if (!familyCode) {
+    // 새 가족 코드 생성
+    familyCode = generateCode();
+    localStorage.setItem('kakeibo_family_code', familyCode);
+    // 기본 멤버 생성
+    const m = {id:'m_'+Date.now(), name:'自分', role:'本人', color:'#1a5fa8'};
+    await dbCall('addMember', m);
+    family = [m];
+  } else {
+    // 기존 코드로 데이터 불러오기
+    await loadFromDB();
+  }
+}
+
+async function loadFromDB() {
   try {
-    const t = localStorage.getItem('kakeibo_txns');
-    const f = localStorage.getItem('kakeibo_family');
-    const n = localStorage.getItem('kakeibo_nextId');
-    if (t) txns   = JSON.parse(t);
-    if (f) family = JSON.parse(f);
-    if (n) nextId = parseInt(n);
-  } catch(e) {}
+    showLoading(true);
+    const [members, txnRows] = await Promise.all([
+      dbCall('getMembers'),
+      dbCall('getTxns'),
+    ]);
+    if (members.length) family = members;
+    txns = txnRows.map(r => ({
+      id: r.id, date: r.date, name: r.name,
+      amount: r.amount, type: r.type, cat: r.cat,
+      who: r.who, fixed: r.fixed
+    }));
+  } catch(e) {
+    toast('⚠ データの読み込みに失敗しました');
+  } finally {
+    showLoading(false);
+  }
+}
+
+function showLoading(on) {
+  let el = document.getElementById('loading-bar');
+  if (!el) {
+    el = document.createElement('div');
+    el.id = 'loading-bar';
+    el.style.cssText = 'position:fixed;top:0;left:0;right:0;height:3px;background:var(--accent);z-index:999;transition:opacity .3s;';
+    document.body.appendChild(el);
+  }
+  el.style.opacity = on ? '1' : '0';
 }
 
 // ── Default empty state ─────────────────────
-let family = [
-  {id:'f1', name:'自分', role:'本人', color:'#1a5fa8'},
-];
+let family = [];
 let txns = [];
-let nextId = 1;
 
 // ── Period ─────────────────────────────────
 function getPeriodLabel(){
@@ -739,20 +791,21 @@ function closeSheet(){
 
 function sheetBgClick(e){if(e.target===document.getElementById('sheet-bg'))closeSheet();}
 
-function confirmSheet(){
+async function confirmSheet(){
   if(!pendingReceipt)return;
   const today=new Date().toISOString().split('T')[0];
-  (pendingReceipt.items||[]).forEach(item=>{
-    if(item.cat==='その他'&&item.name.includes('消費税'))return;
-    txns.unshift({id:nextId++,date:today,
-      name:`${pendingReceipt.store} — ${item.name}`,
-      amount:item.price||0,type:'expense',
-      cat:item.cat||'その他',who:family[0]?.id||'f1',fixed:false});
-  });
-  closeSheet();
-  saveData();
-  renderAll();
-  toast(`✓ ${pendingReceipt.store}を登録しました`);
+  const items=(pendingReceipt.items||[]).filter(item=>!(item.cat==='その他'&&item.name.includes('消費税')));
+  try{
+    for(const item of items){
+      const txn={date:today,name:`${pendingReceipt.store} — ${item.name}`,
+        amount:item.price||0,type:'expense',cat:item.cat||'その他',
+        who:family[0]?.id||'f1',fixed:false};
+      const saved=await dbCall('addTxn',txn);
+      txns.unshift({...txn,id:saved.id});
+    }
+    closeSheet();renderAll();
+    toast(`✓ ${pendingReceipt.store}を登録しました（${items.length}件）`);
+  }catch(e){toast('⚠ 保存に失敗しました');}
 }
 
 // ── Add manual ─────────────────────────────
@@ -783,17 +836,20 @@ function pickCat(id,el){
   document.querySelectorAll('.cat-opt').forEach(b=>b.classList.remove('sel'));
   el.classList.add('sel');
 }
-function submitAdd(){
+async function submitAdd(){
   const amt=parseInt(document.getElementById('a-amt').value);
   const name=document.getElementById('a-name').value.trim();
   const date=document.getElementById('a-date').value;
   const who=document.getElementById('a-who').value;
   const fixed=document.getElementById('a-fixed').checked;
   if(!amt||!name||!date){toast('⚠ 金額・内容・日付を入力してください');return;}
-  txns.unshift({id:nextId++,date,name,amount:amt,type:selType2,cat:selCat,who,fixed});
-  saveData();
-  closeAdd();renderAll();
-  toast('✓ 登録しました');
+  const txn={date,name,amount:amt,type:selType2,cat:selCat,who,fixed};
+  try {
+    const saved = await dbCall('addTxn', txn);
+    txns.unshift({...txn, id: saved.id});
+    closeAdd(); renderAll();
+    toast('✓ 登録しました');
+  } catch(e) { toast('⚠ 保存に失敗しました'); }
 }
 
 // ── Family ─────────────────────────────────
@@ -810,15 +866,18 @@ function pickColor(c,el){
   document.querySelectorAll('#color-row div').forEach(d=>d.style.borderColor='transparent');
   el.style.borderColor='var(--ink)';
 }
-function submitMember(){
+async function submitMember(){
   const name=document.getElementById('m-name').value.trim();
   const role=document.getElementById('m-role').value;
   if(!name){toast('⚠ 名前を入力してください');return;}
-  family.push({id:'f'+Date.now(),name,role,color:selColor});
-  closeModal('member-modal');
-  saveData();
-  renderFamily();renderAll();
-  toast(`✓ ${name}を追加しました`);
+  const m={id:'m'+Date.now(),name,role,color:selColor};
+  try{
+    await dbCall('addMember',m);
+    family.push(m);
+    closeModal('member-modal');
+    renderFamily();renderAll();
+    toast(`✓ ${name}を追加しました`);
+  }catch(e){toast('⚠ 保存に失敗しました');}
 }
 function closeModal(id){document.getElementById(id).classList.remove('open');}
 
@@ -884,41 +943,66 @@ function removeIncRow(i){
   if(row) row.remove();
 }
 
-function submitIncome(){
+async function submitIncome(){
   const list=document.getElementById('inc-items-list');
   const rows=list.querySelectorAll('.inc-item');
   if(!rows.length){toast('⚠ 収入を入力してください');return;}
 
-  // Remove existing income txns for this period
+  // Delete existing income for this period from DB
   const periodT=getPeriodTxns();
-  const incIds=new Set(periodT.filter(x=>x.type==='income').map(x=>x.id));
-  txns=txns.filter(x=>!incIds.has(x.id));
+  const incIds=periodT.filter(x=>x.type==='income').map(x=>x.id);
+  if(incIds.length){
+    try{ await dbCall('deleteTxns',{ids:incIds}); }catch(e){}
+    txns=txns.filter(x=>!incIds.includes(x.id));
+  }
 
   // Add new ones
   const today=new Date().toISOString().split('T')[0];
   let added=0;
-  rows.forEach(row=>{
+  for(const row of rows){
     const idx=row.id.replace('inc-row-','');
     const name=document.getElementById(`inc-name-${idx}`)?.value.trim()||'収入';
     const amt=parseInt(document.getElementById(`inc-amt-${idx}`)?.value||'0');
     if(amt>0){
-      txns.unshift({id:nextId++,date:today,name,amount:amt,type:'income',cat:'収入',who:family[0]?.id||'f1',fixed:false});
-      added++;
+      const txn={date:today,name,amount:amt,type:'income',cat:'収入',who:family[0]?.id||'f1',fixed:false};
+      try{
+        const saved=await dbCall('addTxn',txn);
+        txns.unshift({...txn,id:saved.id});
+        added++;
+      }catch(e){}
     }
-  });
+  }
 
   closeModal('income-modal');
-  saveData();
   renderAll();
   toast(`✓ 収入を更新しました（${added}件）`);
 }
 
+// ── Family code share UI ────────────────────
+function showFamilyCode(){
+  const msg = `家族共有コード:\n\n${familyCode}\n\nこのコードを家族に共有してください。\n家族のスマホで「コードで参加」から入力すると同じ家計簿を使えます。`;
+  alert(msg);
+}
+
+function joinWithCode(){
+  const code = prompt('家族共有コードを入力してください:');
+  if(!code) return;
+  const trimmed = code.trim().toUpperCase();
+  if(trimmed.length < 4){ toast('⚠ コードが短すぎます'); return; }
+  localStorage.setItem('kakeibo_family_code', trimmed);
+  familyCode = trimmed;
+  family = []; txns = [];
+  loadFromDB().then(()=>{ renderFamily(); renderAll(); toast('✓ 家族に参加しました'); });
+}
+
 // ── Init ───────────────────────────────────
-loadData();  // localStorage からデータを復元
-document.getElementById('page-sub').textContent=
-  `${now.getFullYear()}年${now.getMonth()+1}月${now.getDate()}日`;
-renderFamily();
-renderAll();
+(async()=>{
+  document.getElementById('page-sub').textContent=
+    `${now.getFullYear()}年${now.getMonth()+1}月${now.getDate()}日`;
+  await initFamily();
+  renderFamily();
+  renderAll();
+})();
 </script>
 </body>
 </html>
