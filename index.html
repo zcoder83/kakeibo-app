@@ -591,7 +591,15 @@ async function doSignup(){
 }
 function showAuthErr(msg){const e=document.getElementById('auth-err');e.textContent=msg;e.classList.add('show');}
 function saveSession(data){
-  session={token:data.token,role:data.role,familyCode:data.familyCode,name:data.name,color:data.color,userId:data.user?.id||data.userId};
+  session={
+    token:data.token,
+    refreshToken:data.refreshToken||data.refresh_token||session?.refreshToken||'',
+    role:data.role,
+    familyCode:data.familyCode,
+    name:data.name,
+    color:data.color,
+    userId:data.user?.id||data.userId
+  };
   localStorage.setItem('kakeibo_session',JSON.stringify(session));
 }
 function doLogout(){
@@ -606,8 +614,48 @@ function doLogout(){
 async function dbCall(action,data={}){
   const res=await fetch('/api/db',{method:'POST',headers:{'Content-Type':'application/json'},
     body:JSON.stringify({action,familyCode:session.familyCode,token:session.token,data})});
-  if(!res.ok)throw new Error('DB error');
+  // 401이면 토큰 갱신 시도
+  if(res.status===401||res.status===403){
+    const refreshed=await tryRefreshToken();
+    if(refreshed){
+      // 재시도
+      const res2=await fetch('/api/db',{method:'POST',headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({action,familyCode:session.familyCode,token:session.token,data})});
+      if(!res2.ok) throw new Error('DB error');
+      return res2.json();
+    } else {
+      // 갱신 실패 → 로그아웃
+      forceLogout();
+      throw new Error('Session expired');
+    }
+  }
+  if(!res.ok) throw new Error('DB error');
   return res.json();
+}
+
+async function tryRefreshToken(){
+  if(!session?.refreshToken) return false;
+  try{
+    const res=await fetch('/api/auth',{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({action:'refresh',refreshToken:session.refreshToken})});
+    if(!res.ok) return false;
+    const data=await res.json();
+    if(data.token){
+      session.token=data.token;
+      if(data.refreshToken) session.refreshToken=data.refreshToken;
+      localStorage.setItem('kakeibo_session',JSON.stringify(session));
+      return true;
+    }
+    return false;
+  }catch(e){return false;}
+}
+
+function forceLogout(){
+  localStorage.removeItem('kakeibo_session');
+  session=null;family=[];txns=[];fixedExpenses=[];
+  document.getElementById('main-app').style.display='none';
+  document.getElementById('auth-screen').style.display='flex';
+  showAuthErr('セッションの有効期限が切れました。再ログインしてください。');
 }
 
 // ── App start ────────────────────────────────
