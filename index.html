@@ -720,43 +720,72 @@ function renderMembers(){
 
 // ── Swipe to exclude ─────────────────────────
 const swipeState={};
+// 현재 열린 멤버 상세창 정보 저장
+let currentDetailUid=null, currentDetailName=null, currentDetailRole=null, currentDetailColor=null;
+
 function swipeStart(e,id){
   const t=e.touches[0];
-  swipeState[id]={startX:t.clientX,moved:0};
+  swipeState[id]={startX:t.clientX,startY:t.clientY,moved:0,locked:false};
 }
 function swipeMove(e,id){
   if(!swipeState[id])return;
   const t=e.touches[0];
   const dx=t.clientX-swipeState[id].startX;
+  const dy=t.clientY-swipeState[id].startY;
+  // 세로 스크롤이면 무시
+  if(!swipeState[id].locked){
+    if(Math.abs(dy)>Math.abs(dx)){swipeState[id].locked='vertical';return;}
+    else swipeState[id].locked='horizontal';
+  }
+  if(swipeState[id].locked==='vertical')return;
   swipeState[id].moved=dx;
-  if(dx<-10){
-    const inner=document.querySelector(`#txr-${id} .txn-inner`);
-    if(inner) inner.style.transform=`translateX(${Math.max(dx,-80)}px)`;
+  if(dx<0){
+    // 현재 행과 detail-sheet 안 모두 지원
+    const inner=document.getElementById(`txr-${id}`)?.querySelector('.txn-inner');
+    if(inner){
+      const offset=Math.max(dx,-70);
+      inner.style.transform=`translateX(${offset}px)`;
+      // 스와이프 비율에 따라 배경색 힌트
+      const ratio=Math.abs(offset)/70;
+      inner.style.boxShadow=`inset 0 0 0 2px rgba(200,73,10,${ratio*0.6})`;
+    }
     e.preventDefault();
   }
 }
-function swipeEnd(e,id,isExcluded){
+function swipeEnd(e,id){
   if(!swipeState[id])return;
   const dx=swipeState[id].moved;
-  const inner=document.querySelector(`#txr-${id} .txn-inner`);
-  if(inner) inner.style.transform='';
+  const locked=swipeState[id].locked;
   delete swipeState[id];
-  if(dx<-50){
-    if(isExcluded){
-      showConfirm('除外を取り消す','この項目を復元しますか？合計に再び含まれます。',()=>toggleExclude(id,false),true);
-    } else {
-      showConfirm('この項目を除外する','この項目を家計簿から除外しますか？合計から除かれます。',()=>toggleExclude(id,true));
-    }
+  const inner=document.getElementById(`txr-${id}`)?.querySelector('.txn-inner');
+  if(inner){inner.style.transform='';inner.style.boxShadow='';}
+  if(locked==='vertical'||dx>-40)return;
+
+  // txns 배열에서 실제 excluded 상태 확인
+  const txn=txns.find(x=>String(x.id)===String(id));
+  const isExcluded=txn?!!txn.excluded:false;
+
+  if(isExcluded){
+    showConfirm('除外を取り消す','この項目を復元しますか？\n合計に再び含まれます。',()=>toggleExclude(id,false),true);
+  } else {
+    showConfirm('この項目を除外しますか？','この項目を家計簿から除外します。\n合計から除かれます。',()=>toggleExclude(id,true));
   }
 }
+
 async function toggleExclude(id,excl){
   try{
     await dbCall('toggleExclude',{id,excluded:excl});
-    const t=txns.find(x=>x.id==id);
+    // txns 배열 업데이트
+    const t=txns.find(x=>String(x.id)===String(id));
     if(t) t.excluded=excl;
+    // 홈 화면 합계 갱신
     renderAll();
-    toast(excl?'除外しました':'復元しました');
-  }catch(e){toast('⚠ 操作に失敗しました');}
+    toast(excl?'✓ 除外しました':'✓ 復元しました');
+    // 멤버 상세창이 열려 있으면 목록 새로고침
+    if(currentDetailUid){
+      await openMemberDetail(currentDetailUid,currentDetailName,currentDetailRole,currentDetailColor);
+    }
+  }catch(e){toast('⚠ 操作に失敗しました: '+e.message);}
 }
 
 // ── Report ───────────────────────────────────
@@ -897,6 +926,8 @@ async function deleteFixed(id){
 
 // ── Member detail ─────────────────────────────
 async function openMemberDetail(uid,name,role,color){
+  // 현재 열린 멤버 정보 저장 (toggleExclude 후 새로고침용)
+  currentDetailUid=uid; currentDetailName=name; currentDetailRole=role; currentDetailColor=color;
   document.getElementById('detail-name').textContent=name+(uid===session?.userId?' (あなた)':'');
   document.getElementById('detail-role').textContent=role==='admin'?'管理者':'メンバー';
   const av=document.getElementById('detail-avatar');
@@ -928,7 +959,7 @@ async function openMemberDetail(uid,name,role,color){
           <div class="txn-inner" style="padding:10px 0;background:${excl?'rgba(232,228,218,0.35)':'var(--surface)'};" ${isAdmin?`
             ontouchstart="swipeStart(event,'${x.id}')"
             ontouchmove="swipeMove(event,'${x.id}')"
-            ontouchend="swipeEnd(event,'${x.id}',${excl})"
+            ontouchend="swipeEnd(event,'${x.id}')"
           `:''}
           >
             <div class="txn-ico" style="background:${c.color}18;width:34px;height:34px;font-size:16px;${exclStyle}">${c.em}</div>
@@ -944,7 +975,10 @@ async function openMemberDetail(uid,name,role,color){
     }).join('');
   }catch(e){document.getElementById('detail-txns').innerHTML='<div style="text-align:center;padding:24px;color:var(--red);font-size:13px;">読み込みに失敗しました</div>';}
 }
-function closeDetailSheet(){document.getElementById('detail-sheet').classList.remove('open');}
+function closeDetailSheet(){
+  document.getElementById('detail-sheet').classList.remove('open');
+  currentDetailUid=null; currentDetailName=null; currentDetailRole=null; currentDetailColor=null;
+}
 
 // ── Family code ──────────────────────────────
 function showFamilyCodeSection(){
