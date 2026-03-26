@@ -785,18 +785,19 @@ function handleExcludeBtn(id, isCurrentlyExcluded){
 
 async function toggleExclude(id,excl){
   try{
-    await dbCall('toggleExclude',{id,excluded:excl});
-    // txns 배열 업데이트
+    const result = await dbCall('toggleExclude',{id:String(id),excluded:excl});
+    // 로컬 txns 배열 즉시 업데이트
     const t=txns.find(x=>String(x.id)===String(id));
     if(t) t.excluded=excl;
-    // 홈 화면 합계 갱신
     renderAll();
     toast(excl?'✓ 除外しました':'✓ 復元しました');
-    // 멤버 상세창이 열려 있으면 목록 새로고침
+    // 멤버 상세창 새로고침
     if(currentDetailUid){
       await openMemberDetail(currentDetailUid,currentDetailName,currentDetailRole,currentDetailColor);
     }
-  }catch(e){toast('⚠ 操作に失敗しました: '+e.message);}
+  }catch(e){
+    toast('⚠ 失敗: '+e.message);
+  }
 }
 
 // ── Report ───────────────────────────────────
