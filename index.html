@@ -1,0 +1,739 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="家計簿">
+<meta name="theme-color" content="#f7f5f0">
+<title>レシート家計簿</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;500;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:#f7f5f0; --surface:#fff; --surface2:#f2efe8; --surface3:#e8e4da;
+  --ink:#1a1814; --ink2:#5c5850; --ink3:#a09890;
+  --accent:#c8490a; --accent-l:#f5ece7;
+  --green:#2d7a4f; --green-l:#e8f5ee;
+  --blue:#1a5fa8; --blue-l:#e8f0fb;
+  --amber:#b87000; --amber-l:#fdf3e0;
+  --red:#dc2626; --red-l:#fef2f2;
+  --border:rgba(26,24,20,.10); --border2:rgba(26,24,20,.18);
+  --r:14px; --rsm:10px;
+  --safe-top: env(safe-area-inset-top);
+  --safe-bot: env(safe-area-inset-bottom);
+}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+html,body{height:100%;overflow:hidden;background:var(--bg);}
+body{font-family:'Noto Sans JP',sans-serif;color:var(--ink);}
+
+/* ── App shell ── */
+.app{display:flex;flex-direction:column;height:100%;height:100dvh;}
+
+/* ── Top header ── */
+.header{
+  background:rgba(247,245,240,.95);backdrop-filter:blur(12px);
+  padding:calc(var(--safe-top) + 12px) 18px 12px;
+  border-bottom:1px solid var(--border);
+  display:flex;align-items:center;justify-content:space-between;
+  flex-shrink:0;
+}
+.header-title{font-size:17px;font-weight:700;letter-spacing:-.3px;}
+.header-sub{font-size:11px;color:var(--ink3);margin-top:1px;}
+.header-right{display:flex;gap:8px;}
+.icon-btn{
+  width:36px;height:36px;border-radius:50%;
+  background:var(--surface);border:1px solid var(--border2);
+  display:flex;align-items:center;justify-content:center;
+  font-size:17px;cursor:pointer;transition:background .15s;
+}
+.icon-btn:active{background:var(--surface2);}
+
+/* ── Scrollable content ── */
+.scroll{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding-bottom:calc(var(--safe-bot) + 80px);}
+.page{padding:16px;}
+
+/* ── Summary cards ── */
+.sum-row{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px;}
+.sum-card{
+  background:var(--surface);border:1px solid var(--border);
+  border-radius:var(--r);padding:14px 16px;
+  box-shadow:0 1px 3px rgba(26,24,20,.06);
+}
+.sum-lbl{font-size:10px;color:var(--ink3);font-weight:600;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px;}
+.sum-val{font-size:21px;font-weight:700;font-family:'DM Mono',monospace;letter-spacing:-1px;}
+.sum-sub{font-size:10px;color:var(--ink3);margin-top:3px;}
+.sum-card.exp .sum-val{color:var(--accent);}
+.sum-card.inc .sum-val{color:var(--green);}
+.sum-card.bal .sum-val{color:var(--blue);}
+.sum-card.fix .sum-val{color:var(--amber);}
+
+/* ── Upload button ── */
+.scan-btn{
+  width:100%;padding:18px;border-radius:var(--r);
+  background:var(--accent);border:none;color:#fff;
+  font-size:15px;font-weight:700;letter-spacing:-.2px;
+  cursor:pointer;transition:background .15s;margin-bottom:16px;
+  display:flex;align-items:center;justify-content:center;gap:10px;
+  font-family:inherit;
+}
+.scan-btn:active{background:#b03d08;}
+.scan-btn .scan-icon{font-size:20px;}
+
+/* ── Period selector ── */
+.period-row{display:flex;align-items:center;gap:10px;margin-bottom:16px;}
+.period-toggle{
+  display:flex;background:var(--surface);border:1px solid var(--border);
+  border-radius:var(--rsm);padding:3px;gap:2px;
+}
+.ptab{
+  padding:6px 14px;border-radius:7px;font-size:12px;font-weight:600;
+  color:var(--ink3);border:none;background:none;font-family:inherit;cursor:pointer;
+  transition:all .15s;
+}
+.ptab.on{background:var(--surface);color:var(--ink);box-shadow:0 1px 3px rgba(26,24,20,.1);border:1px solid var(--border);}
+.period-nav{display:flex;align-items:center;gap:6px;margin-left:auto;}
+.pnav-btn{
+  width:28px;height:28px;border-radius:50%;border:1px solid var(--border2);
+  background:var(--surface);font-size:14px;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;transition:background .15s;
+}
+.pnav-btn:active{background:var(--surface2);}
+.period-lbl{font-size:14px;font-weight:700;white-space:nowrap;}
+
+/* ── Section header ── */
+.sec-hd{font-size:13px;font-weight:700;color:var(--ink2);margin-bottom:10px;display:flex;align-items:center;justify-content:space-between;}
+.sec-hd a{font-size:11px;color:var(--accent);font-weight:500;cursor:pointer;}
+
+/* ── Category chart ── */
+.cat-bar-list{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:14px 16px;margin-bottom:16px;}
+.cat-bar-row{display:grid;grid-template-columns:80px 1fr 68px;align-items:center;gap:10px;margin-bottom:8px;}
+.cat-bar-row:last-child{margin-bottom:0;}
+.cat-bar-lbl{font-size:12px;color:var(--ink2);display:flex;align-items:center;gap:5px;}
+.cat-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0;}
+.cat-track{height:5px;background:var(--surface3);border-radius:3px;overflow:hidden;}
+.cat-fill{height:100%;border-radius:3px;transition:width .5s ease;}
+.cat-amt{font-size:11px;font-family:'DM Mono',monospace;color:var(--ink3);text-align:right;}
+
+/* ── Transaction list ── */
+.txn-list{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);overflow:hidden;margin-bottom:16px;}
+.day-hd{padding:8px 16px;background:var(--surface2);display:flex;justify-content:space-between;}
+.day-lbl{font-size:11px;font-weight:700;color:var(--ink3);}
+.day-tot{font-size:11px;font-weight:700;color:var(--accent);font-family:'DM Mono',monospace;}
+.txn-row{
+  padding:12px 16px;display:flex;align-items:center;gap:11px;
+  border-bottom:1px solid var(--border);cursor:pointer;transition:background .1s;
+}
+.txn-row:last-child{border-bottom:none;}
+.txn-row:active{background:var(--surface2);}
+.txn-ico{width:38px;height:38px;border-radius:11px;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;}
+.txn-body{flex:1;min-width:0;}
+.txn-name{font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.txn-meta{font-size:11px;color:var(--ink3);margin-top:2px;display:flex;align-items:center;gap:5px;}
+.cat-pill{font-size:10px;font-weight:600;padding:1px 7px;border-radius:20px;}
+.who-pill{font-size:10px;padding:1px 6px;border-radius:20px;background:var(--surface3);color:var(--ink2);}
+.txn-amt{font-size:14px;font-weight:700;font-family:'DM Mono',monospace;flex-shrink:0;}
+.txn-amt.neg{color:var(--accent);}
+.txn-amt.pos{color:var(--green);}
+
+/* ── Bottom nav ── */
+.bottom-nav{
+  position:fixed;bottom:0;left:0;right:0;
+  background:rgba(247,245,240,.95);backdrop-filter:blur(12px);
+  border-top:1px solid var(--border);
+  padding:8px 0 calc(var(--safe-bot) + 8px);
+  display:flex;justify-content:space-around;
+  flex-shrink:0;z-index:50;
+}
+.bnav-item{
+  display:flex;flex-direction:column;align-items:center;gap:3px;
+  font-size:10px;font-weight:500;color:var(--ink3);cursor:pointer;
+  padding:4px 20px;transition:color .15s;
+}
+.bnav-item.on{color:var(--accent);}
+.bnav-icon{font-size:20px;}
+
+/* ── Analyzing overlay ── */
+.overlay{
+  position:fixed;inset:0;background:rgba(247,245,240,.97);
+  z-index:200;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;gap:16px;
+  display:none;
+}
+.overlay.show{display:flex;}
+.spin{width:40px;height:40px;border:3px solid var(--surface3);border-top-color:var(--accent);border-radius:50%;animation:spin .7s linear infinite;}
+@keyframes spin{to{transform:rotate(360deg)}}
+.overlay-title{font-size:16px;font-weight:700;color:var(--ink);}
+.step-list{font-size:13px;color:var(--ink2);line-height:2.2;text-align:center;}
+.step-done{color:var(--green);}
+.step-active{color:var(--accent);font-weight:600;}
+
+/* ── Receipt confirm sheet ── */
+.sheet-bg{
+  position:fixed;inset:0;background:rgba(26,24,20,.5);
+  z-index:300;display:none;align-items:flex-end;
+}
+.sheet-bg.open{display:flex;}
+.sheet{
+  background:var(--surface);border-radius:20px 20px 0 0;
+  width:100%;max-height:90vh;display:flex;flex-direction:column;
+  animation:slideUp .25s ease;
+}
+@keyframes slideUp{from{transform:translateY(100%)}to{transform:translateY(0)}}
+.sheet-handle{width:36px;height:4px;background:var(--surface3);border-radius:2px;margin:12px auto 0;}
+.sheet-hd{padding:14px 18px 10px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:flex-start;}
+.sheet-store{font-size:16px;font-weight:700;}
+.sheet-date{font-size:11px;color:var(--ink3);margin-top:2px;}
+.sheet-total{font-size:18px;font-weight:700;font-family:'DM Mono',monospace;color:var(--accent);}
+.sheet-scroll{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:12px 18px;}
+.item-row{
+  display:flex;align-items:center;gap:10px;
+  padding:10px 12px;background:var(--surface);border:1px solid var(--border);
+  border-radius:var(--rsm);margin-bottom:8px;
+}
+.item-em{font-size:18px;width:24px;flex-shrink:0;}
+.item-body{flex:1;min-width:0;}
+.item-name{font-size:13px;font-weight:600;}
+.item-qty{font-size:11px;color:var(--ink3);}
+.item-cat-badge{font-size:10px;font-weight:600;padding:2px 8px;border-radius:20px;flex-shrink:0;}
+.item-price{font-size:13px;font-weight:700;font-family:'DM Mono',monospace;flex-shrink:0;text-align:right;min-width:64px;}
+.sheet-footer{
+  padding:14px 18px;border-top:1px solid var(--border);
+  display:grid;grid-template-columns:1fr 2fr;gap:10px;
+  padding-bottom:calc(var(--safe-bot) + 14px);
+}
+.sheet-footer button{padding:13px;border-radius:var(--rsm);font-size:14px;font-weight:700;border:none;cursor:pointer;font-family:inherit;transition:all .15s;}
+.btn-cancel{background:var(--surface2);color:var(--ink2);}
+.btn-cancel:active{background:var(--surface3);}
+.btn-confirm{background:var(--accent);color:#fff;}
+.btn-confirm:active{background:#b03d08;}
+
+/* ── Add modal ── */
+.modal-bg{position:fixed;inset:0;background:rgba(26,24,20,.5);z-index:300;display:none;align-items:flex-end;}
+.modal-bg.open{display:flex;}
+.modal{background:var(--surface);border-radius:20px 20px 0 0;width:100%;max-height:88vh;display:flex;flex-direction:column;animation:slideUp .25s ease;}
+.modal-hd{padding:16px 18px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;}
+.modal-hd h3{font-size:16px;font-weight:700;}
+.modal-close{background:none;border:none;font-size:22px;cursor:pointer;color:var(--ink3);line-height:1;padding:4px;}
+.modal-body{flex:1;overflow-y:auto;padding:16px 18px;}
+.f-group{margin-bottom:14px;}
+.f-label{font-size:12px;color:var(--ink3);font-weight:600;margin-bottom:5px;display:block;text-transform:uppercase;letter-spacing:.4px;}
+.f-input{width:100%;padding:12px 14px;border-radius:var(--rsm);background:var(--surface2);border:1px solid var(--border2);color:var(--ink);font-size:15px;font-family:inherit;outline:none;transition:border-color .15s;-webkit-appearance:none;}
+.f-input:focus{border-color:var(--accent);}
+.f-row{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+.type-row{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px;}
+.type-btn{padding:12px;border-radius:var(--rsm);border:1px solid var(--border2);background:var(--surface2);font-size:14px;font-weight:700;color:var(--ink3);cursor:pointer;font-family:inherit;transition:all .15s;}
+.type-btn.on-exp{background:var(--accent-l);border-color:var(--accent);color:var(--accent);}
+.type-btn.on-inc{background:var(--green-l);border-color:var(--green);color:var(--green);}
+.cat-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;}
+.cat-opt{padding:10px 4px;border-radius:var(--rsm);border:1px solid var(--border);background:var(--surface2);font-size:11px;font-weight:600;color:var(--ink2);cursor:pointer;text-align:center;transition:all .15s;font-family:inherit;}
+.cat-opt.sel{border-color:var(--accent);color:var(--accent);background:var(--accent-l);}
+.cat-em{font-size:20px;display:block;margin-bottom:4px;}
+.modal-footer{padding:14px 18px;border-top:1px solid var(--border);padding-bottom:calc(var(--safe-bot) + 14px);}
+.modal-footer .btn-confirm{width:100%;padding:14px;border-radius:var(--rsm);background:var(--accent);color:#fff;font-size:15px;font-weight:700;border:none;cursor:pointer;font-family:inherit;}
+
+/* ── Family page ── */
+.member-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:14px 16px;margin-bottom:10px;display:flex;align-items:center;gap:12px;}
+.avatar{width:44px;height:44px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:700;flex-shrink:0;}
+.member-info{flex:1;}
+.member-name{font-size:15px;font-weight:700;}
+.member-role{font-size:12px;color:var(--ink3);}
+.member-spend{font-size:14px;font-weight:700;font-family:'DM Mono',monospace;color:var(--accent);}
+.add-member-card{background:none;border:2px dashed var(--border2);border-radius:var(--r);padding:18px 16px;width:100%;display:flex;align-items:center;justify-content:center;gap:8px;font-size:14px;font-weight:600;color:var(--ink3);cursor:pointer;font-family:inherit;margin-top:4px;transition:all .15s;}
+.add-member-card:active{background:var(--surface2);}
+
+/* ── Toast ── */
+.toast{position:fixed;top:calc(var(--safe-top) + 60px);left:50%;transform:translateX(-50%) translateY(-20px);background:var(--ink);color:#fff;padding:11px 20px;border-radius:30px;font-size:13px;font-weight:600;z-index:400;opacity:0;transition:all .3s ease;white-space:nowrap;pointer-events:none;}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+
+/* ── Error state ── */
+.error-box{background:var(--red-l);border:1px solid rgba(220,38,38,.2);border-radius:var(--rsm);padding:14px;font-size:13px;color:var(--red);margin-bottom:12px;display:none;}
+.error-box.show{display:block;}
+</style>
+</head>
+<body>
+<div class="app">
+
+  <!-- Header -->
+  <div class="header">
+    <div>
+      <div class="header-title" id="page-title">🧾 家計簿</div>
+      <div class="header-sub" id="page-sub"></div>
+    </div>
+    <div class="header-right">
+      <div class="icon-btn" onclick="openAdd()">＋</div>
+    </div>
+  </div>
+
+  <!-- Hidden file input -->
+  <input type="file" id="file-in" accept="image/*" capture="environment" style="display:none" onchange="handleFile(this)">
+
+  <!-- Scroll area -->
+  <div class="scroll" id="scroll">
+
+    <!-- Dashboard page -->
+    <div class="page" id="pg-home">
+      <!-- Period -->
+      <div class="period-row">
+        <div class="period-toggle">
+          <button class="ptab on" onclick="setPeriod('month',this)">月別</button>
+          <button class="ptab" onclick="setPeriod('payday',this)">給料日別</button>
+        </div>
+        <div class="period-nav">
+          <button class="pnav-btn" onclick="chPeriod(-1)">‹</button>
+          <span class="period-lbl" id="period-lbl"></span>
+          <button class="pnav-btn" onclick="chPeriod(1)">›</button>
+        </div>
+      </div>
+
+      <!-- Summary -->
+      <div class="sum-row">
+        <div class="sum-card exp"><div class="sum-lbl">支出</div><div class="sum-val" id="s-exp">¥0</div></div>
+        <div class="sum-card inc"><div class="sum-lbl">収入</div><div class="sum-val" id="s-inc">¥0</div></div>
+        <div class="sum-card bal"><div class="sum-lbl">残高</div><div class="sum-val" id="s-bal">¥0</div></div>
+        <div class="sum-card fix"><div class="sum-lbl">固定費</div><div class="sum-val" id="s-fix">¥0</div></div>
+      </div>
+
+      <!-- Scan button -->
+      <button class="scan-btn" onclick="document.getElementById('file-in').click()">
+        <span class="scan-icon">📷</span>レシートを撮影してスキャン
+      </button>
+
+      <!-- Error -->
+      <div class="error-box" id="error-box"></div>
+
+      <!-- Category bars -->
+      <div class="sec-hd">カテゴリ別支出</div>
+      <div class="cat-bar-list" id="cat-bars"></div>
+
+      <!-- Transactions -->
+      <div class="sec-hd" style="margin-top:16px;">最近の取引</div>
+      <div class="txn-list" id="txn-list"></div>
+    </div>
+
+    <!-- Family page -->
+    <div class="page" id="pg-family" style="display:none">
+      <div class="sec-hd">家族メンバー</div>
+      <div id="member-list"></div>
+      <button class="add-member-card" onclick="openAddMember()">＋ メンバーを追加</button>
+    </div>
+
+  </div>
+
+  <!-- Bottom nav -->
+  <div class="bottom-nav">
+    <div class="bnav-item on" onclick="goPage('home',this)"><div class="bnav-icon">🏠</div>ホーム</div>
+    <div class="bnav-item" onclick="goPage('family',this)"><div class="bnav-icon">👨‍👩‍👧</div>家族</div>
+    <div class="bnav-item" onclick="goPage('home',this)"><div class="bnav-icon">📊</div>レポート</div>
+    <div class="bnav-item" onclick="goPage('home',this)"><div class="bnav-icon">⚙️</div>設定</div>
+  </div>
+</div>
+
+<!-- Analyzing overlay -->
+<div class="overlay" id="overlay">
+  <div class="spin"></div>
+  <div class="overlay-title">AIが解析中...</div>
+  <div class="step-list" id="step-list"></div>
+</div>
+
+<!-- Receipt confirm sheet -->
+<div class="sheet-bg" id="sheet-bg" onclick="sheetBgClick(event)">
+  <div class="sheet" id="sheet">
+    <div class="sheet-handle"></div>
+    <div class="sheet-hd">
+      <div><div class="sheet-store" id="sh-store"></div><div class="sheet-date" id="sh-date"></div></div>
+      <div class="sheet-total" id="sh-total"></div>
+    </div>
+    <div class="sheet-scroll" id="sh-items"></div>
+    <div class="sheet-footer">
+      <button class="btn-cancel" onclick="closeSheet()">やり直す</button>
+      <button class="btn-confirm" onclick="confirmSheet()">✓ 登録する</button>
+    </div>
+  </div>
+</div>
+
+<!-- Add manual modal -->
+<div class="modal-bg" id="add-modal" onclick="modalBgClick(event)">
+  <div class="modal" id="modal-inner">
+    <div class="modal-hd"><h3>手動入力</h3><button class="modal-close" onclick="closeAdd()">×</button></div>
+    <div class="modal-body">
+      <div class="type-row">
+        <button class="type-btn on-exp" id="tb-exp" onclick="setType('expense')">💸 支出</button>
+        <button class="type-btn" id="tb-inc" onclick="setType('income')">💰 収入</button>
+      </div>
+      <div class="f-group"><label class="f-label">金額（円）</label><input class="f-input" id="a-amt" type="number" inputmode="numeric" placeholder="1,280"></div>
+      <div class="f-group"><label class="f-label">店名・内容</label><input class="f-input" id="a-name" placeholder="セブン-イレブン"></div>
+      <div class="f-row">
+        <div class="f-group"><label class="f-label">日付</label><input class="f-input" id="a-date" type="date"></div>
+        <div class="f-group"><label class="f-label">メンバー</label><select class="f-input" id="a-who"></select></div>
+      </div>
+      <div class="f-group"><label class="f-label">カテゴリ</label><div class="cat-grid" id="cat-grid"></div></div>
+      <div class="f-group"><label style="display:flex;align-items:center;gap:8px;font-size:13px;color:var(--ink2);cursor:pointer;"><input type="checkbox" id="a-fixed"> 固定費として毎月登録</label></div>
+    </div>
+    <div class="modal-footer"><button class="btn-confirm" onclick="submitAdd()">登録する</button></div>
+  </div>
+</div>
+
+<!-- Add member modal -->
+<div class="modal-bg" id="member-modal" onclick="if(event.target===this)closeModal('member-modal')">
+  <div class="modal" style="max-height:60vh;">
+    <div class="modal-hd"><h3>メンバー追加</h3><button class="modal-close" onclick="closeModal('member-modal')">×</button></div>
+    <div class="modal-body">
+      <div class="f-group"><label class="f-label">名前</label><input class="f-input" id="m-name" placeholder="山田太郎"></div>
+      <div class="f-group"><label class="f-label">役割</label>
+        <select class="f-input" id="m-role"><option>パパ</option><option>ママ</option><option>子供</option><option>その他</option></select>
+      </div>
+      <div class="f-group"><label class="f-label">カラー</label>
+        <div style="display:flex;gap:10px;flex-wrap:wrap;" id="color-row"></div>
+      </div>
+    </div>
+    <div class="modal-footer"><button class="btn-confirm" onclick="submitMember()">追加する</button></div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const CATS=[
+  {id:'食料品',em:'🛒',color:'#2d7a4f'},
+  {id:'外食',em:'🍜',color:'#c8490a'},
+  {id:'日用品',em:'🧴',color:'#1a5fa8'},
+  {id:'交通',em:'🚌',color:'#7c3aed'},
+  {id:'医療',em:'💊',color:'#e11d48'},
+  {id:'エンタメ',em:'🎮',color:'#d97706'},
+  {id:'衣類',em:'👗',color:'#db2777'},
+  {id:'固定費',em:'🏠',color:'#b87000'},
+  {id:'収入',em:'💰',color:'#2d7a4f'},
+  {id:'その他',em:'📦',color:'#6b7280'},
+];
+const catMap=Object.fromEntries(CATS.map(c=>[c.id,c]));
+const COLORS=['#c8490a','#1a5fa8','#2d7a4f','#7c3aed','#d97706','#db2777'];
+const yen=n=>'¥'+Math.abs(n).toLocaleString('ja-JP');
+
+let periodMode='month', curOffset=0, selCat='食料品', selType2='expense', selColor=COLORS[0];
+let pendingReceipt=null, nextId=20;
+const now=new Date();
+
+function dayStr(monthOff,day){
+  const dt=new Date(now.getFullYear(),now.getMonth()+monthOff,day);
+  return dt.toISOString().split('T')[0];
+}
+
+let family=[
+  {id:'f1',name:'パパ',role:'パパ',color:'#1a5fa8'},
+  {id:'f2',name:'ママ',role:'ママ',color:'#c8490a'},
+];
+let txns=[
+  {id:1,date:dayStr(0,3),name:'イオン',amount:4280,type:'expense',cat:'食料品',who:'f1',fixed:false},
+  {id:2,date:dayStr(0,4),name:'スタバ',amount:680,type:'expense',cat:'外食',who:'f2',fixed:false},
+  {id:3,date:dayStr(0,5),name:'給料',amount:320000,type:'income',cat:'収入',who:'f1',fixed:false},
+  {id:4,date:dayStr(0,5),name:'給料',amount:260000,type:'income',cat:'収入',who:'f2',fixed:false},
+  {id:5,date:dayStr(0,6),name:'Suicaチャージ',amount:3000,type:'expense',cat:'交通',who:'f1',fixed:false},
+  {id:6,date:dayStr(0,7),name:'Netflix',amount:1490,type:'expense',cat:'固定費',who:'f1',fixed:true},
+  {id:7,date:dayStr(0,7),name:'家賃',amount:85000,type:'expense',cat:'固定費',who:'f1',fixed:true},
+  {id:8,date:dayStr(0,8),name:'マツキヨ',amount:2340,type:'expense',cat:'日用品',who:'f2',fixed:false},
+  {id:9,date:dayStr(0,10),name:'松屋',amount:530,type:'expense',cat:'外食',who:'f1',fixed:false},
+  {id:10,date:dayStr(0,12),name:'クリニック',amount:2160,type:'expense',cat:'医療',who:'f2',fixed:false},
+  {id:11,date:dayStr(0,14),name:'映画館',amount:1900,type:'expense',cat:'エンタメ',who:'f1',fixed:false},
+  {id:12,date:dayStr(0,16),name:'電気代',amount:8400,type:'expense',cat:'固定費',who:'f1',fixed:true},
+];
+
+// ── Period ─────────────────────────────────
+function getPeriodLabel(){
+  if(periodMode==='month'){
+    const dt=new Date(now.getFullYear(),now.getMonth()+curOffset,1);
+    return `${dt.getFullYear()}年${dt.getMonth()+1}月`;
+  }
+  const b=new Date(now.getFullYear(),now.getMonth()+curOffset,25);
+  const e=new Date(now.getFullYear(),now.getMonth()+curOffset+1,24);
+  return `${b.getMonth()+1}/25〜${e.getMonth()+1}/24`;
+}
+function getPeriodTxns(){
+  return txns.filter(t=>{
+    const dt=new Date(t.date+'T00:00:00');
+    if(periodMode==='month'){
+      const base=new Date(now.getFullYear(),now.getMonth()+curOffset,1);
+      return dt.getFullYear()===base.getFullYear()&&dt.getMonth()===base.getMonth();
+    }
+    const s=new Date(now.getFullYear(),now.getMonth()+curOffset-1,25);
+    const e=new Date(now.getFullYear(),now.getMonth()+curOffset,24);
+    return dt>=s&&dt<=e;
+  });
+}
+function setPeriod(m,el){
+  periodMode=m;
+  document.querySelectorAll('.ptab').forEach(b=>b.classList.remove('on'));
+  el.classList.add('on');
+  renderAll();
+}
+function chPeriod(d){curOffset+=d;renderAll();}
+
+// ── Render ─────────────────────────────────
+function renderAll(){
+  document.getElementById('period-lbl').textContent=getPeriodLabel();
+  const t=getPeriodTxns();
+  const exp=t.filter(x=>x.type==='expense');
+  const inc=t.filter(x=>x.type==='income');
+  const fix=t.filter(x=>x.fixed);
+  const expSum=exp.reduce((s,x)=>s+x.amount,0);
+  const incSum=inc.reduce((s,x)=>s+x.amount,0);
+  const fixSum=fix.reduce((s,x)=>s+x.amount,0);
+  document.getElementById('s-exp').textContent=yen(expSum);
+  document.getElementById('s-inc').textContent=yen(incSum);
+  document.getElementById('s-bal').textContent=yen(incSum-expSum);
+  document.getElementById('s-fix').textContent=yen(fixSum);
+  renderCatBars(exp,expSum);
+  renderTxns(t);
+  renderMembers();
+}
+
+function renderCatBars(exp,total){
+  const bycat={};
+  exp.forEach(x=>{bycat[x.cat]=(bycat[x.cat]||0)+x.amount;});
+  const sorted=Object.entries(bycat).sort((a,b)=>b[1]-a[1]).slice(0,5);
+  const el=document.getElementById('cat-bars');
+  if(!sorted.length){el.innerHTML='<div style="font-size:13px;color:var(--ink3);text-align:center;padding:12px;">データなし</div>';return;}
+  el.innerHTML=sorted.map(([id,amt])=>{
+    const c=catMap[id]||catMap['その他'];
+    const pct=total?Math.round(amt/total*100):0;
+    return `<div class="cat-bar-row">
+      <div class="cat-bar-lbl"><span class="cat-dot" style="background:${c.color}"></span>${c.em} ${c.id}</div>
+      <div class="cat-track"><div class="cat-fill" style="width:${pct}%;background:${c.color}"></div></div>
+      <div class="cat-amt">${yen(amt)}</div>
+    </div>`;
+  }).join('');
+}
+
+function renderTxns(t){
+  const sorted=[...t].sort((a,b)=>b.date.localeCompare(a.date)).slice(0,30);
+  const groups={};
+  sorted.forEach(x=>{(groups[x.date]=groups[x.date]||[]).push(x);});
+  const el=document.getElementById('txn-list');
+  if(!sorted.length){el.innerHTML='<div style="padding:24px;text-align:center;font-size:13px;color:var(--ink3);">取引なし</div>';return;}
+  const wd=['日','月','火','水','木','金','土'];
+  el.innerHTML=Object.entries(groups).sort((a,b)=>b[0].localeCompare(a[0])).map(([date,items])=>{
+    const dt=new Date(date+'T00:00:00');
+    const lbl=`${dt.getMonth()+1}月${dt.getDate()}日（${wd[dt.getDay()]}）`;
+    const tot=items.filter(x=>x.type==='expense').reduce((s,x)=>s+x.amount,0);
+    const rows=items.map(x=>{
+      const c=catMap[x.cat]||catMap['その他'];
+      const m=family.find(f=>f.id===x.who);
+      return `<div class="txn-row">
+        <div class="txn-ico" style="background:${c.color}18">${c.em}</div>
+        <div class="txn-body">
+          <div class="txn-name">${x.name}${x.fixed?' 🔁':''}</div>
+          <div class="txn-meta">
+            <span class="cat-pill" style="background:${c.color}18;color:${c.color}">${c.id}</span>
+            ${m?`<span class="who-pill">${m.name}</span>`:''}
+          </div>
+        </div>
+        <div class="txn-amt ${x.type==='income'?'pos':'neg'}">${x.type==='income'?'+':'-'}${yen(x.amount)}</div>
+      </div>`;
+    }).join('');
+    return `<div class="day-hd"><span class="day-lbl">${lbl}</span>${tot?`<span class="day-tot">-${yen(tot)}</span>`:''}</div>${rows}`;
+  }).join('');
+}
+
+function renderMembers(){
+  const t=getPeriodTxns();
+  const el=document.getElementById('member-list');
+  if(!el)return;
+  el.innerHTML=family.map(m=>{
+    const spend=t.filter(x=>x.who===m.id&&x.type==='expense').reduce((s,x)=>s+x.amount,0);
+    return `<div class="member-card">
+      <div class="avatar" style="background:${m.color}22;color:${m.color}">${m.name.charAt(0)}</div>
+      <div class="member-info"><div class="member-name">${m.name}</div><div class="member-role">${m.role}</div></div>
+      <div class="member-spend">${yen(spend)}</div>
+    </div>`;
+  }).join('');
+}
+
+// ── File / AI ──────────────────────────────
+async function handleFile(input){
+  if(!input.files||!input.files.length)return;
+  const file=input.files[0];
+  input.value='';
+  showOverlay();
+  hideError();
+
+  const steps=['画像を読み込み中...','文字認識（OCR）中...','商品・金額を抽出中...','カテゴリをAI分類中...','完了 ✓'];
+  let si=0;
+  const iv=setInterval(()=>{
+    if(si<steps.length-1){
+      document.getElementById('step-list').innerHTML=steps.slice(0,si+1).map((s,j)=>
+        `<div class="${j<si?'step-done':j===si?'step-active':''}">${j<si?'✓ ':j===si?'→ ':''}${s}</div>`
+      ).join('');
+      si++;
+    }
+  },600);
+
+  try{
+    const b64=await toBase64(file);
+    const mt=file.type||'image/jpeg';
+
+    // Call our Vercel API proxy
+    const res=await fetch('/api/analyze',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({imageBase64:b64,mediaType:mt})
+    });
+
+    clearInterval(iv);
+
+    if(!res.ok){
+      const err=await res.json();
+      throw new Error(err.error||'API error');
+    }
+
+    const data=await res.json();
+    hideOverlay();
+    showSheet(data);
+  }catch(e){
+    clearInterval(iv);
+    hideOverlay();
+    showError(`❌ エラー: ${e.message}`);
+  }
+}
+
+function toBase64(file){
+  return new Promise((res,rej)=>{
+    const r=new FileReader();
+    r.onload=()=>res(r.result.split(',')[1]);
+    r.onerror=()=>rej(new Error('ファイル読み込み失敗'));
+    r.readAsDataURL(file);
+  });
+}
+
+function showOverlay(){document.getElementById('overlay').classList.add('show');}
+function hideOverlay(){document.getElementById('overlay').classList.remove('show');}
+function showError(msg){const e=document.getElementById('error-box');e.textContent=msg;e.classList.add('show');}
+function hideError(){document.getElementById('error-box').classList.remove('show');}
+
+// ── Sheet ──────────────────────────────────
+function showSheet(receipt){
+  pendingReceipt=receipt;
+  document.getElementById('sh-store').textContent=receipt.store||'不明';
+  document.getElementById('sh-date').textContent=receipt.date||'';
+  document.getElementById('sh-total').textContent=yen(receipt.total||0);
+  const items=(receipt.items||[]);
+  document.getElementById('sh-items').innerHTML=items.map(item=>{
+    const c=catMap[item.cat]||catMap['その他'];
+    return `<div class="item-row">
+      <div class="item-em">${item.em||c.em}</div>
+      <div class="item-body"><div class="item-name">${item.name}</div><div class="item-qty">${item.qty||''}</div></div>
+      <span class="item-cat-badge" style="background:${c.color}18;color:${c.color}">${item.cat}</span>
+      <div class="item-price">${yen(item.price||0)}</div>
+    </div>`;
+  }).join('');
+  document.getElementById('sheet-bg').classList.add('open');
+}
+
+function closeSheet(){
+  document.getElementById('sheet-bg').classList.remove('open');
+  pendingReceipt=null;
+}
+
+function sheetBgClick(e){if(e.target===document.getElementById('sheet-bg'))closeSheet();}
+
+function confirmSheet(){
+  if(!pendingReceipt)return;
+  const today=new Date().toISOString().split('T')[0];
+  (pendingReceipt.items||[]).forEach(item=>{
+    if(item.cat==='その他'&&item.name.includes('消費税'))return;
+    txns.unshift({id:nextId++,date:today,
+      name:`${pendingReceipt.store} — ${item.name}`,
+      amount:item.price||0,type:'expense',
+      cat:item.cat||'その他',who:family[0]?.id||'f1',fixed:false});
+  });
+  closeSheet();
+  renderAll();
+  toast(`✓ ${pendingReceipt.store}を登録しました`);
+}
+
+// ── Add manual ─────────────────────────────
+function openAdd(){
+  buildCatGrid();
+  setType('expense');
+  document.getElementById('a-date').value=new Date().toISOString().split('T')[0];
+  document.getElementById('a-amt').value='';
+  document.getElementById('a-name').value='';
+  document.getElementById('a-who').innerHTML=family.map(m=>`<option value="${m.id}">${m.name}</option>`).join('');
+  document.getElementById('add-modal').classList.add('open');
+}
+function closeAdd(){document.getElementById('add-modal').classList.remove('open');}
+function modalBgClick(e){if(e.target===document.getElementById('add-modal'))closeAdd();}
+
+function setType(t){
+  selType2=t;
+  document.getElementById('tb-exp').className='type-btn'+(t==='expense'?' on-exp':'');
+  document.getElementById('tb-inc').className='type-btn'+(t==='income'?' on-inc':'');
+}
+function buildCatGrid(){
+  document.getElementById('cat-grid').innerHTML=CATS.map(c=>
+    `<button class="cat-opt${c.id===selCat?' sel':''}" onclick="pickCat('${c.id}',this)">
+      <span class="cat-em">${c.em}</span>${c.id}</button>`).join('');
+}
+function pickCat(id,el){
+  selCat=id;
+  document.querySelectorAll('.cat-opt').forEach(b=>b.classList.remove('sel'));
+  el.classList.add('sel');
+}
+function submitAdd(){
+  const amt=parseInt(document.getElementById('a-amt').value);
+  const name=document.getElementById('a-name').value.trim();
+  const date=document.getElementById('a-date').value;
+  const who=document.getElementById('a-who').value;
+  const fixed=document.getElementById('a-fixed').checked;
+  if(!amt||!name||!date){toast('⚠ 金額・内容・日付を入力してください');return;}
+  txns.unshift({id:nextId++,date,name,amount:amt,type:selType2,cat:selCat,who,fixed});
+  closeAdd();renderAll();toast('✓ 登録しました');
+}
+
+// ── Family ─────────────────────────────────
+function openAddMember(){
+  document.getElementById('m-name').value='';
+  selColor=COLORS[0];
+  document.getElementById('color-row').innerHTML=COLORS.map(c=>
+    `<div onclick="pickColor('${c}',this)" style="width:32px;height:32px;border-radius:50%;background:${c};cursor:pointer;border:3px solid ${c===selColor?'var(--ink)':'transparent'};transition:border-color .15s;"></div>`
+  ).join('');
+  document.getElementById('member-modal').classList.add('open');
+}
+function pickColor(c,el){
+  selColor=c;
+  document.querySelectorAll('#color-row div').forEach(d=>d.style.borderColor='transparent');
+  el.style.borderColor='var(--ink)';
+}
+function submitMember(){
+  const name=document.getElementById('m-name').value.trim();
+  const role=document.getElementById('m-role').value;
+  if(!name){toast('⚠ 名前を入力してください');return;}
+  family.push({id:'f'+Date.now(),name,role,color:selColor});
+  closeModal('member-modal');renderAll();toast(`✓ ${name}を追加しました`);
+}
+function closeModal(id){document.getElementById(id).classList.remove('open');}
+
+// ── Page nav ───────────────────────────────
+function goPage(pg,el){
+  document.getElementById('pg-home').style.display=pg==='home'?'':'none';
+  document.getElementById('pg-family').style.display=pg==='family'?'':'none';
+  document.querySelectorAll('.bnav-item').forEach(b=>b.classList.remove('on'));
+  el.classList.add('on');
+  document.getElementById('page-title').textContent=pg==='family'?'👨‍👩‍👧 家族メンバー':'🧾 家計簿';
+  document.getElementById('page-sub').textContent='';
+  document.getElementById('scroll').scrollTop=0;
+}
+
+// ── Toast ──────────────────────────────────
+function toast(msg){
+  const t=document.getElementById('toast');
+  t.textContent=msg;t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'),2500);
+}
+
+// ── Init ───────────────────────────────────
+document.getElementById('page-sub').textContent=
+  `${now.getFullYear()}年${now.getMonth()+1}月${now.getDate()}日`;
+renderAll();
+</script>
+</body>
+</html>
