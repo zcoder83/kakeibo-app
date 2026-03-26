@@ -476,9 +476,26 @@ body{font-family:'Noto Sans JP',sans-serif;color:var(--ink);}
     <div class="detail-hd">
       <div class="avatar" id="detail-avatar" style="width:40px;height:40px;font-size:18px;"></div>
       <div><div style="font-size:16px;font-weight:700;" id="detail-name"></div><div style="font-size:12px;color:var(--ink3);" id="detail-role"></div></div>
-      <button onclick="closeDetailSheet()" style="margin-left:auto;background:none;border:none;font-size:22px;color:var(--ink3);cursor:pointer;">×</button>
+      <div style="margin-left:auto;display:flex;align-items:center;gap:8px;">
+        <!-- 삭제 모드 버튼 (자신의 목록일 때만 표시) -->
+        <button id="delete-mode-btn" onclick="toggleDeleteMode()"
+          style="display:none;padding:6px 12px;border-radius:20px;border:1px solid var(--border2);background:var(--surface2);font-size:12px;font-weight:600;color:var(--ink2);cursor:pointer;font-family:inherit;">
+          削除
+        </button>
+        <!-- 삭제 모드일 때: 선택 삭제 버튼 -->
+        <button id="delete-confirm-btn" onclick="deleteSelected()"
+          style="display:none;padding:6px 12px;border-radius:20px;border:none;background:var(--red);font-size:12px;font-weight:700;color:#fff;cursor:pointer;font-family:inherit;">
+          選択削除
+        </button>
+        <!-- 삭제 모드일 때: 취소 버튼 -->
+        <button id="delete-cancel-btn" onclick="cancelDeleteMode()"
+          style="display:none;padding:6px 12px;border-radius:20px;border:1px solid var(--border2);background:var(--surface2);font-size:12px;font-weight:600;color:var(--ink2);cursor:pointer;font-family:inherit;">
+          キャンセル
+        </button>
+        <button onclick="closeDetailSheet()" style="background:none;border:none;font-size:22px;color:var(--ink3);cursor:pointer;padding:4px;">×</button>
+      </div>
     </div>
-    <div style="padding:10px 18px;font-size:12px;color:var(--ink3);border-bottom:1px solid var(--border);" id="detail-hint" style="display:none;"></div>
+    <div style="padding:10px 18px;font-size:12px;color:var(--ink3);border-bottom:1px solid var(--border);" id="detail-hint"></div>
     <div class="detail-scroll" id="detail-txns"></div>
   </div>
 </div>
@@ -936,17 +953,73 @@ async function deleteFixed(id){
   });
 }
 
+let deleteMode=false;
+
+function toggleDeleteMode(){
+  deleteMode=true;
+  document.getElementById('delete-mode-btn').style.display='none';
+  document.getElementById('delete-confirm-btn').style.display='block';
+  document.getElementById('delete-cancel-btn').style.display='block';
+  // 체크박스 전부 보이기
+  document.querySelectorAll('.detail-chk').forEach(c=>c.style.display='block');
+  document.getElementById('detail-hint').textContent='削除したい項目にチェックを入れて「選択削除」を押してください';
+}
+
+function cancelDeleteMode(){
+  deleteMode=false;
+  document.getElementById('delete-mode-btn').style.display='block';
+  document.getElementById('delete-confirm-btn').style.display='none';
+  document.getElementById('delete-cancel-btn').style.display='none';
+  // 체크박스 숨기고 체크 해제
+  document.querySelectorAll('.detail-chk').forEach(c=>{c.style.display='none';c.checked=false;});
+  document.getElementById('detail-hint').textContent='「削除」ボタンで不要な項目を選んで削除できます';
+}
+
+async function deleteSelected(){
+  const checked=[...document.querySelectorAll('.detail-chk:checked')];
+  if(!checked.length){toast('⚠ 削除する項目を選択してください');return;}
+  const ids=checked.map(c=>c.dataset.id);
+  showConfirm(
+    `${ids.length}件を削除しますか？`,
+    'この操作は取り消せません。\n選択した項目を完全に削除します。',
+    async()=>{
+      try{
+        await dbCall('deleteTxns',{ids});
+        // 로컬 txns에서도 제거
+        txns=txns.filter(x=>!ids.includes(String(x.id)));
+        renderAll();
+        toast(`✓ ${ids.length}件を削除しました`);
+        cancelDeleteMode();
+        // 상세창 새로고침
+        if(currentDetailUid){
+          await openMemberDetail(currentDetailUid,currentDetailName,currentDetailRole,currentDetailColor);
+        }
+      }catch(e){toast('⚠ 削除に失敗しました: '+e.message);}
+    }
+  );
+}
+
 // ── Member detail ─────────────────────────────
 async function openMemberDetail(uid,name,role,color){
-  // 현재 열린 멤버 정보 저장 (toggleExclude 후 새로고침용)
   currentDetailUid=uid; currentDetailName=name; currentDetailRole=role; currentDetailColor=color;
   document.getElementById('detail-name').textContent=name+(uid===session?.userId?' (あなた)':'');
   document.getElementById('detail-role').textContent=role==='admin'?'管理者':'メンバー';
   const av=document.getElementById('detail-avatar');
   av.textContent=name.charAt(0);av.style.background=color+'22';av.style.color=color;
+
+  // 삭제 버튼: 자신의 목록일 때만 표시
+  const isOwnList = uid === session?.userId;
+  document.getElementById('delete-mode-btn').style.display = isOwnList ? 'block' : 'none';
+  document.getElementById('delete-confirm-btn').style.display = 'none';
+  document.getElementById('delete-cancel-btn').style.display = 'none';
+  deleteMode = false;
+
   const hint=document.getElementById('detail-hint');
-  if(session?.role==='admin'){
+  if(session?.role==='admin' && !isOwnList){
     hint.textContent='管理者：各項目の右端ボタンで除外・復元できます';
+    hint.style.display='block';
+  } else if(isOwnList){
+    hint.textContent='「削除」ボタンで不要な項目を選んで削除できます';
     hint.style.display='block';
   } else {
     hint.style.display='none';
@@ -968,8 +1041,9 @@ async function openMemberDetail(uid,name,role,color){
         const excl=x.excluded;
         const rowBg=excl?'background:rgba(232,228,218,0.4);':'background:var(--surface);';
         const opacity=excl?'opacity:0.4;':'';
-        // 관리자용 제외/복구 버튼
-        const adminBtn=isAdmin?`
+        const isOwn=uid===session?.userId;
+        // 관리자용 제외/복구 버튼 (타인 항목에만)
+        const adminBtn=(isAdmin&&!isOwn)?`
           <button onclick="handleExcludeBtn('${x.id}',${excl})"
             style="flex-shrink:0;width:32px;height:32px;border-radius:50%;border:none;cursor:pointer;
               display:flex;align-items:center;justify-content:center;font-size:14px;
@@ -978,8 +1052,12 @@ async function openMemberDetail(uid,name,role,color){
               transition:all .15s;"
             title="${excl?'復元する':'除外する'}"
           >${excl?'↩':'✕'}</button>`:'';
+        // 체크박스 (자신의 항목일 때, 삭제 모드에서 보임)
+        const chk=isOwn?`<input type="checkbox" class="detail-chk" data-id="${x.id}"
+          style="display:none;width:20px;height:20px;flex-shrink:0;accent-color:var(--red);cursor:pointer;">`:'';
         return `<div id="txr-${x.id}" style="border-bottom:1px solid var(--border);${rowBg}">
           <div style="padding:10px 4px 10px 0;display:flex;align-items:center;gap:10px;">
+            ${chk}
             <div style="width:34px;height:34px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:16px;background:${c.color}18;flex-shrink:0;${opacity}">${c.em}</div>
             <div style="flex:1;min-width:0;${opacity}">
               <div style="font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${x.name}</div>
@@ -991,7 +1069,6 @@ async function openMemberDetail(uid,name,role,color){
             ${adminBtn}
           </div>
         </div>`;
-      }).join('');
       return `<div style="margin-bottom:6px;">
         <div style="font-size:11px;font-weight:700;color:var(--ink3);padding:6px 0 4px;display:flex;justify-content:space-between;">
           <span>${lbl}</span>${tot?`<span style="color:var(--accent);">-${yen(tot)}</span>`:''}
