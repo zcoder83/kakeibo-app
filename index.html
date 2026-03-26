@@ -772,6 +772,17 @@ function swipeEnd(e,id){
   }
 }
 
+// 버튼으로 제외/복구
+function handleExcludeBtn(id, isCurrentlyExcluded){
+  if(isCurrentlyExcluded){
+    showConfirm('除外を取り消す', 'この項目を復元しますか？\n合計に再び含まれます。',
+      ()=>toggleExclude(id, false), true);
+  } else {
+    showConfirm('この項目を除外しますか？', 'この項目を家計簿の合計から除外します。',
+      ()=>toggleExclude(id, true));
+  }
+}
+
 async function toggleExclude(id,excl){
   try{
     await dbCall('toggleExclude',{id,excluded:excl});
@@ -934,7 +945,7 @@ async function openMemberDetail(uid,name,role,color){
   av.textContent=name.charAt(0);av.style.background=color+'22';av.style.color=color;
   const hint=document.getElementById('detail-hint');
   if(session?.role==='admin'){
-    hint.textContent='左にスワイプして項目を除外・復元できます';
+    hint.textContent='管理者：各項目の右端ボタンで除外・復元できます';
     hint.style.display='block';
   } else {
     hint.style.display='none';
@@ -954,24 +965,37 @@ async function openMemberDetail(uid,name,role,color){
       const rowsHtml=items.map(x=>{
         const c=catMap[x.cat]||catMap['その他'];
         const excl=x.excluded;
-        const exclStyle=excl?'opacity:0.35;':'';
-        return `<div class="txn-row${excl?' excluded':''}" id="txr-${x.id}" style="border-bottom:1px solid var(--border);">
-          <div class="txn-inner" style="padding:10px 0;background:${excl?'rgba(232,228,218,0.35)':'var(--surface)'};" ${isAdmin?`
-            ontouchstart="swipeStart(event,'${x.id}')"
-            ontouchmove="swipeMove(event,'${x.id}')"
-            ontouchend="swipeEnd(event,'${x.id}')"
-          `:''}
-          >
-            <div class="txn-ico" style="background:${c.color}18;width:34px;height:34px;font-size:16px;${exclStyle}">${c.em}</div>
-            <div class="txn-body" style="${exclStyle}">
-              <div class="txn-name">${x.name}</div>
-              <div class="txn-meta"><span class="cat-pill" style="background:${c.color}18;color:${c.color}">${c.id}</span></div>
+        const rowBg=excl?'background:rgba(232,228,218,0.4);':'background:var(--surface);';
+        const opacity=excl?'opacity:0.4;':'';
+        // 관리자용 제외/복구 버튼
+        const adminBtn=isAdmin?`
+          <button onclick="handleExcludeBtn('${x.id}',${excl})"
+            style="flex-shrink:0;width:32px;height:32px;border-radius:50%;border:none;cursor:pointer;
+              display:flex;align-items:center;justify-content:center;font-size:14px;
+              background:${excl?'rgba(45,122,79,0.12)':'rgba(200,73,10,0.1)'};
+              color:${excl?'var(--green)':'var(--accent)'};
+              transition:all .15s;"
+            title="${excl?'復元する':'除外する'}"
+          >${excl?'↩':'✕'}</button>`:'';
+        return `<div id="txr-${x.id}" style="border-bottom:1px solid var(--border);${rowBg}">
+          <div style="padding:10px 4px 10px 0;display:flex;align-items:center;gap:10px;">
+            <div style="width:34px;height:34px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:16px;background:${c.color}18;flex-shrink:0;${opacity}">${c.em}</div>
+            <div style="flex:1;min-width:0;${opacity}">
+              <div style="font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${x.name}</div>
+              <div style="font-size:11px;color:var(--ink3);margin-top:2px;">
+                <span style="background:${c.color}18;color:${c.color};font-size:10px;font-weight:600;padding:1px 7px;border-radius:20px;">${c.id}</span>
+              </div>
             </div>
-            <div class="txn-amt ${x.type==='income'?'pos':'neg'}" style="${exclStyle}">${x.type==='income'?'+':'-'}${yen(x.amount)}</div>
+            <div style="font-size:13px;font-weight:700;font-family:'DM Mono',monospace;flex-shrink:0;${opacity};color:${x.type==='income'?'var(--green)':'var(--accent)'};">${x.type==='income'?'+':'-'}${yen(x.amount)}</div>
+            ${adminBtn}
           </div>
         </div>`;
       }).join('');
-      return `<div style="margin-bottom:6px;"><div style="font-size:11px;font-weight:700;color:var(--ink3);padding:6px 0 4px;display:flex;justify-content:space-between;"><span>${lbl}</span>${tot?`<span style="color:var(--accent);">-${yen(tot)}</span>`:''}</div>${rowsHtml}</div>`;
+      return `<div style="margin-bottom:6px;">
+        <div style="font-size:11px;font-weight:700;color:var(--ink3);padding:6px 0 4px;display:flex;justify-content:space-between;">
+          <span>${lbl}</span>${tot?`<span style="color:var(--accent);">-${yen(tot)}</span>`:''}
+        </div>${rowsHtml}
+      </div>`;
     }).join('');
   }catch(e){document.getElementById('detail-txns').innerHTML='<div style="text-align:center;padding:24px;color:var(--red);font-size:13px;">読み込みに失敗しました</div>';}
 }
