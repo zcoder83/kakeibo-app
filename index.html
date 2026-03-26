@@ -345,6 +345,16 @@ body{font-family:'Noto Sans JP',sans-serif;color:var(--ink);}
       <div class="cat-bar-list" id="cat-bars"></div>
       <div style="font-size:13px;font-weight:700;color:var(--ink2);margin:16px 0 10px;">最近の取引</div>
       <div class="txn-list" id="txn-list"></div>
+
+      <!-- 관리자 전용 리셋 버튼 -->
+      <div id="reset-section" style="display:none;margin-top:24px;padding-top:20px;border-top:1px solid var(--border);">
+        <button onclick="openResetModal()"
+          style="width:100%;padding:14px;border-radius:var(--r);border:1px solid rgba(220,38,38,.3);
+            background:var(--red-l);color:var(--red);font-size:14px;font-weight:700;
+            cursor:pointer;font-family:inherit;transition:all .15s;">
+          🗑 今月のデータをリセット
+        </button>
+      </div>
     </div>
 
     <!-- Report -->
@@ -486,6 +496,43 @@ body{font-family:'Noto Sans JP',sans-serif;color:var(--ink);}
       </div>
     </div>
     <div class="modal-footer"><button class="btn-confirm" onclick="submitFixed()" style="background:var(--amber);">保存する</button></div>
+  </div>
+</div>
+
+<!-- Category detail popup -->
+<div class="modal-bg" id="cat-modal" onclick="if(event.target===this)closeModal('cat-modal')">
+  <div class="modal" style="max-height:80vh;">
+    <div class="modal-hd">
+      <h3 id="cat-modal-title">カテゴリ詳細</h3>
+      <button class="modal-close" onclick="closeModal('cat-modal')">×</button>
+    </div>
+    <div style="flex:1;overflow-y:auto;" id="cat-modal-list"></div>
+  </div>
+</div>
+
+<!-- Reset modal -->
+<div class="modal-bg" id="reset-modal" onclick="if(event.target===this)closeModal('reset-modal')">
+  <div class="modal">
+    <div class="modal-hd">
+      <h3>🗑 今月をリセット</h3>
+      <button class="modal-close" onclick="closeModal('reset-modal')">×</button>
+    </div>
+    <div class="modal-body">
+      <div style="font-size:13px;color:var(--ink2);margin-bottom:16px;line-height:1.7;">
+        今月の<strong>すべての取引・収入データ</strong>を削除します。<br>この操作は取り消せません。<br><br>
+        続行するには管理者パスワードを入力してください。
+      </div>
+      <div class="f-group">
+        <label class="f-label">パスワード</label>
+        <input class="f-input" id="reset-pw" type="password" inputmode="numeric"
+          placeholder="••••" maxlength="10" autocomplete="off"
+          style="text-align:center;font-size:24px;letter-spacing:8px;">
+      </div>
+      <div id="reset-err" style="font-size:12px;color:var(--red);text-align:center;margin-top:8px;display:none;">パスワードが違います</div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-confirm" onclick="doReset()" style="background:var(--red);">リセット実行</button>
+    </div>
   </div>
 </div>
 
@@ -686,6 +733,7 @@ async function startApp(){
   if(session.role==='admin'){
     document.getElementById('inc-hint').style.display='block';
     document.getElementById('fix-hint').style.display='block';
+    document.getElementById('reset-section').style.display='block';
   }
   await loadFromDB();
   renderAll();
@@ -748,7 +796,11 @@ function renderCatBars(exp){
   if(!sorted.length){el.innerHTML='<div style="font-size:13px;color:var(--ink3);text-align:center;padding:12px;">データなし</div>';return;}
   el.innerHTML=sorted.map(([id,amt])=>{
     const c=catMap[id]||catMap['その他'];
-    return `<div class="cat-bar-row"><div class="cat-bar-lbl"><span class="cat-dot" style="background:${c.color}"></span>${c.em} ${c.id}</div><div class="cat-track"><div class="cat-fill" style="width:${Math.round(amt/total*100)}%;background:${c.color}"></div></div><div class="cat-amt">${yen(amt)}</div></div>`;
+    return `<div class="cat-bar-row" onclick="openCatModal('${id}')" style="cursor:pointer;border-radius:8px;transition:background .1s;" onmouseenter="this.style.background='var(--surface2)'" onmouseleave="this.style.background=''">
+      <div class="cat-bar-lbl"><span class="cat-dot" style="background:${c.color}"></span>${c.em} ${c.id}</div>
+      <div class="cat-track"><div class="cat-fill" style="width:${Math.round(amt/total*100)}%;background:${c.color}"></div></div>
+      <div class="cat-amt">${yen(amt)}</div>
+    </div>`;
   }).join('');
 }
 
@@ -912,7 +964,10 @@ function renderReport(){
   document.getElementById('donut-svg').innerHTML=paths||'<circle cx="80" cy="80" r="72" fill="#e8e4da"/>';
   document.getElementById('donut-legend').innerHTML=sorted.slice(0,6).map(([id,amt])=>{
     const c=catMap[id]||catMap['その他'];
-    return `<div class="legend-row"><div class="legend-l"><span class="legend-dot" style="background:${c.color}"></span><span class="legend-name">${c.em} ${c.id}</span></div><div class="legend-val">${yen(amt)} <span style="font-size:10px;color:var(--ink3);font-weight:400;">(${total?Math.round(amt/total*100):0}%)</span></div></div>`;
+    return `<div class="legend-row" onclick="openCatModal('${id}')" style="cursor:pointer;padding:4px 6px;border-radius:8px;transition:background .1s;" onmouseenter="this.style.background='var(--surface2)'" onmouseleave="this.style.background=''">
+      <div class="legend-l"><span class="legend-dot" style="background:${c.color}"></span><span class="legend-name">${c.em} ${c.id}</span></div>
+      <div class="legend-val">${yen(amt)} <span style="font-size:10px;color:var(--ink3);font-weight:400;">(${total?Math.round(amt/total*100):0}%)</span></div>
+    </div>`;
   }).join('');
 
   // Bar chart (past 6 months)
@@ -1308,6 +1363,77 @@ async function submitIncome(){
     }
   }
   closeModal('income-modal');renderAll();toast(`✓ 収入を更新しました（${added}件）`);
+}
+
+// ── Category Modal ───────────────────────────
+function openCatModal(catId){
+  const c=catMap[catId]||catMap['その他'];
+  const t=getPeriodTxns().filter(x=>!x.excluded&&x.cat===catId&&x.type==='expense');
+  const total=t.reduce((s,x)=>s+x.amount,0);
+
+  document.getElementById('cat-modal-title').textContent=`${c.em} ${c.id}`;
+  const wd=['日','月','火','水','木','金','土'];
+
+  if(!t.length){
+    document.getElementById('cat-modal-list').innerHTML=
+      '<div style="padding:24px;text-align:center;font-size:13px;color:var(--ink3);">取引なし</div>';
+  } else {
+    // 합계 헤더
+    let html=`<div style="padding:12px 18px;background:var(--surface2);border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;">
+      <span style="font-size:12px;color:var(--ink3);">${t.length}件</span>
+      <span style="font-size:16px;font-weight:700;font-family:'DM Mono',monospace;color:${c.color};">-${yen(total)}</span>
+    </div>`;
+    // 항목 목록
+    const sorted=[...t].sort((a,b)=>b.date.localeCompare(a.date));
+    sorted.forEach(x=>{
+      const m=family.find(f=>f.id===x.who);
+      const dt=new Date(x.date+'T00:00:00');
+      const lbl=`${dt.getMonth()+1}/${dt.getDate()}（${wd[dt.getDay()]}）`;
+      html+=`<div style="padding:12px 18px;display:flex;align-items:center;gap:10px;border-bottom:1px solid var(--border);">
+        <div style="font-size:12px;color:var(--ink3);width:60px;flex-shrink:0;">${lbl}</div>
+        <div style="flex:1;min-width:0;">
+          <div style="font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${x.name}</div>
+          ${m?`<div style="font-size:11px;color:var(--ink3);">${m.name}</div>`:''}
+        </div>
+        <div style="font-size:13px;font-weight:700;font-family:'DM Mono',monospace;color:${c.color};flex-shrink:0;">-${yen(x.amount)}</div>
+      </div>`;
+    });
+    document.getElementById('cat-modal-list').innerHTML=html;
+  }
+  document.getElementById('cat-modal').classList.add('open');
+}
+
+// ── Reset ────────────────────────────────────
+function openResetModal(){
+  document.getElementById('reset-pw').value='';
+  document.getElementById('reset-err').style.display='none';
+  document.getElementById('reset-modal').classList.add('open');
+  setTimeout(()=>document.getElementById('reset-pw').focus(),300);
+}
+
+async function doReset(){
+  const pw=document.getElementById('reset-pw').value;
+  if(pw!=='0523'){
+    document.getElementById('reset-err').style.display='block';
+    document.getElementById('reset-pw').value='';
+    document.getElementById('reset-pw').focus();
+    return;
+  }
+  closeModal('reset-modal');
+  // 현재 월의 transaction ID 수집
+  const ids=getPeriodTxns().map(x=>x.id);
+  if(!ids.length){toast('リセットするデータがありません');return;}
+  try{
+    showLoading(true);
+    await dbCall('deleteTxns',{ids});
+    txns=txns.filter(x=>!ids.includes(x.id));
+    renderAll();
+    toast(`✓ ${ids.length}件のデータをリセットしました`);
+  }catch(e){
+    toast('⚠ リセットに失敗しました: '+e.message);
+  }finally{
+    showLoading(false);
+  }
 }
 
 // ── Init ─────────────────────────────────────
