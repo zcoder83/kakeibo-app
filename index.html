@@ -97,12 +97,12 @@ body{font-family:'Noto Sans JP',sans-serif;color:var(--ink);}
 .day-tot{font-size:11px;font-weight:700;color:var(--accent);font-family:'DM Mono',monospace;}
 .txn-row{position:relative;overflow:hidden;border-bottom:1px solid var(--border);}
 .txn-row:last-child{border-bottom:none;}
-.txn-inner{padding:12px 16px;display:flex;align-items:center;gap:11px;background:var(--surface);transition:transform .2s ease,background .1s;}
-.txn-row.excluded .txn-inner{background:#e8e4da;}
-.txn-row.excluded .txn-name{color:var(--ink3);text-decoration:line-through;}
-.txn-row.excluded .txn-amt{color:var(--ink3);}
-.txn-delete-bg{position:absolute;right:0;top:0;bottom:0;width:80px;background:var(--red);display:flex;align-items:center;justify-content:center;color:#fff;font-size:12px;font-weight:700;}
-.txn-restore-bg{position:absolute;right:0;top:0;bottom:0;width:80px;background:var(--green);display:flex;align-items:center;justify-content:center;color:#fff;font-size:12px;font-weight:700;}
+.txn-inner{padding:12px 16px;display:flex;align-items:center;gap:11px;background:var(--surface);transition:transform .25s ease;}
+/* 제외된 항목 — 아주 연하게, 텍스트/가격은 그대로 보임 */
+.txn-row.excluded .txn-inner{background:rgba(232,228,218,0.4);}
+.txn-row.excluded .txn-ico{opacity:0.4;}
+.txn-row.excluded .txn-body{opacity:0.45;}
+.txn-row.excluded .txn-amt{opacity:0.45;}
 .txn-ico{width:38px;height:38px;border-radius:11px;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;}
 .txn-body{flex:1;min-width:0;}
 .txn-name{font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
@@ -668,35 +668,28 @@ function renderCatBars(exp){
 }
 
 function renderTxns(t){
-  const sorted=[...t].sort((a,b)=>b.date.localeCompare(a.date)).slice(0,50);
+  // 홈 탭: 제외된 항목은 표시하지 않음
+  const visible=t.filter(x=>!x.excluded);
+  const sorted=[...visible].sort((a,b)=>b.date.localeCompare(a.date)).slice(0,50);
   const groups={};sorted.forEach(x=>{(groups[x.date]=groups[x.date]||[]).push(x);});
   const el=document.getElementById('txn-list');
   if(!sorted.length){el.innerHTML='<div style="padding:24px;text-align:center;font-size:13px;color:var(--ink3);">取引なし</div>';return;}
   const wd=['日','月','火','水','木','金','土'];
-  const isAdmin=session?.role==='admin';
   el.innerHTML=Object.entries(groups).sort((a,b)=>b[0].localeCompare(a[0])).map(([date,items])=>{
     const dt=new Date(date+'T00:00:00');
     const lbl=`${dt.getMonth()+1}月${dt.getDate()}日（${wd[dt.getDay()]}）`;
-    const tot=items.filter(x=>x.type==='expense'&&!x.excluded).reduce((s,x)=>s+x.amount,0);
+    const tot=items.filter(x=>x.type==='expense').reduce((s,x)=>s+x.amount,0);
     const rows=items.map(x=>{
       const c=catMap[x.cat]||catMap['その他'];
       const m=family.find(f=>f.id===x.who);
-      const excl=x.excluded;
-      return `<div class="txn-row${excl?' excluded':''}" id="txr-${x.id}">
-        ${isAdmin?`<div class="txn-${excl?'restore':'delete'}-bg">${excl?'復元':'除外'}</div>`:''}
-        <div class="txn-inner" ${isAdmin?`
-          ontouchstart="swipeStart(event,'${x.id}')"
-          ontouchmove="swipeMove(event,'${x.id}')"
-          ontouchend="swipeEnd(event,'${x.id}',${excl})"
-        `:''}
-        >
-          <div class="txn-ico" style="background:${c.color}${excl?'10':'18'}">${c.em}</div>
+      return `<div class="txn-row" id="txr-${x.id}">
+        <div class="txn-inner">
+          <div class="txn-ico" style="background:${c.color}18">${c.em}</div>
           <div class="txn-body">
             <div class="txn-name">${x.name}${x.fixed?' 🔁':''}</div>
             <div class="txn-meta">
               <span class="cat-pill" style="background:${c.color}18;color:${c.color}">${c.id}</span>
               ${m?`<span class="who-pill">${m.name}</span>`:''}
-              ${excl?'<span class="excl-badge">除外中</span>':''}
             </div>
           </div>
           <div class="txn-amt ${x.type==='income'?'pos':'neg'}">${x.type==='income'?'+':'-'}${yen(x.amount)}</div>
@@ -823,9 +816,9 @@ function renderReport(){
     <div class="stat-card"><div class="stat-lbl">貯蓄率</div><div class="stat-val" style="color:${savingsRate>=0?'var(--blue)':'var(--red)'};">${savingsRate}%</div></div>
     <div class="stat-card"><div class="stat-lbl">1日平均</div><div class="stat-val">${yen(avgDay)}</div></div>`;
 
-  // Member spend bars
+  // Member spend bars (고정비 제외)
   const memberBars=family.map(m=>{
-    const s=t.filter(x=>x.who===m.id&&x.type==='expense').reduce((s,x)=>s+x.amount,0);
+    const s=t.filter(x=>x.who===m.id&&x.type==='expense'&&!x.fixed).reduce((s,x)=>s+x.amount,0);
     return {name:m.name,color:m.color,amt:s};
   }).sort((a,b)=>b.amt-a.amt);
   const maxM=Math.max(...memberBars.map(b=>b.amt),1);
@@ -930,20 +923,20 @@ async function openMemberDetail(uid,name,role,color){
       const rowsHtml=items.map(x=>{
         const c=catMap[x.cat]||catMap['その他'];
         const excl=x.excluded;
+        const exclStyle=excl?'opacity:0.35;':'';
         return `<div class="txn-row${excl?' excluded':''}" id="txr-${x.id}" style="border-bottom:1px solid var(--border);">
-          ${isAdmin?`<div class="txn-${excl?'restore':'delete'}-bg">${excl?'復元':'除外'}</div>`:''}
-          <div class="txn-inner" style="padding:10px 0;" ${isAdmin?`
+          <div class="txn-inner" style="padding:10px 0;background:${excl?'rgba(232,228,218,0.35)':'var(--surface)'};" ${isAdmin?`
             ontouchstart="swipeStart(event,'${x.id}')"
             ontouchmove="swipeMove(event,'${x.id}')"
             ontouchend="swipeEnd(event,'${x.id}',${excl})"
           `:''}
           >
-            <div class="txn-ico" style="background:${c.color}${excl?'10':'18'};width:34px;height:34px;font-size:16px;">${c.em}</div>
-            <div class="txn-body">
+            <div class="txn-ico" style="background:${c.color}18;width:34px;height:34px;font-size:16px;${exclStyle}">${c.em}</div>
+            <div class="txn-body" style="${exclStyle}">
               <div class="txn-name">${x.name}</div>
-              <div class="txn-meta"><span class="cat-pill" style="background:${c.color}18;color:${c.color}">${c.id}</span>${excl?'<span class="excl-badge">除外中</span>':''}</div>
+              <div class="txn-meta"><span class="cat-pill" style="background:${c.color}18;color:${c.color}">${c.id}</span></div>
             </div>
-            <div class="txn-amt ${x.type==='income'?'pos':'neg'}">${x.type==='income'?'+':'-'}${yen(x.amount)}</div>
+            <div class="txn-amt ${x.type==='income'?'pos':'neg'}" style="${exclStyle}">${x.type==='income'?'+':'-'}${yen(x.amount)}</div>
           </div>
         </div>`;
       }).join('');
