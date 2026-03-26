@@ -10,112 +10,90 @@
 <title>レシート家計簿</title>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;500;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
-:root {
-  --bg:#f7f5f0; --surface:#fff; --surface2:#f2efe8; --surface3:#e8e4da;
-  --ink:#1a1814; --ink2:#5c5850; --ink3:#a09890;
-  --accent:#c8490a; --accent-l:#f5ece7;
-  --green:#2d7a4f; --green-l:#e8f5ee;
-  --blue:#1a5fa8; --blue-l:#e8f0fb;
-  --amber:#b87000; --amber-l:#fdf3e0;
-  --red:#dc2626; --red-l:#fef2f2;
-  --border:rgba(26,24,20,.10); --border2:rgba(26,24,20,.18);
-  --r:14px; --rsm:10px;
-  --safe-top: env(safe-area-inset-top);
-  --safe-bot: env(safe-area-inset-bottom);
+:root{
+  --bg:#f7f5f0;--surface:#fff;--surface2:#f2efe8;--surface3:#e8e4da;
+  --ink:#1a1814;--ink2:#5c5850;--ink3:#a09890;
+  --accent:#c8490a;--accent-l:#f5ece7;
+  --green:#2d7a4f;--green-l:#e8f5ee;
+  --blue:#1a5fa8;--blue-l:#e8f0fb;
+  --amber:#b87000;--amber-l:#fdf3e0;
+  --red:#dc2626;--red-l:#fef2f2;
+  --border:rgba(26,24,20,.10);--border2:rgba(26,24,20,.18);
+  --r:14px;--rsm:10px;
+  --safe-top:env(safe-area-inset-top);--safe-bot:env(safe-area-inset-bottom);
 }
 *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
 html,body{height:100%;overflow:hidden;background:var(--bg);}
 body{font-family:'Noto Sans JP',sans-serif;color:var(--ink);}
-
-/* ── App shell ── */
 .app{display:flex;flex-direction:column;height:100%;height:100dvh;}
 
-/* ── Top header ── */
+/* Auth screens */
+.auth-screen{
+  position:fixed;inset:0;background:var(--bg);z-index:500;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  padding:24px;
+}
+.auth-logo{font-size:48px;margin-bottom:8px;}
+.auth-title{font-size:24px;font-weight:700;letter-spacing:-.5px;margin-bottom:4px;}
+.auth-sub{font-size:13px;color:var(--ink3);margin-bottom:32px;}
+.auth-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:24px;width:100%;max-width:380px;}
+.auth-tabs{display:flex;background:var(--surface2);border-radius:var(--rsm);padding:3px;gap:2px;margin-bottom:20px;}
+.auth-tab{flex:1;padding:8px;border-radius:7px;font-size:13px;font-weight:600;color:var(--ink3);border:none;background:none;font-family:inherit;cursor:pointer;transition:all .15s;}
+.auth-tab.on{background:var(--surface);color:var(--ink);box-shadow:0 1px 3px rgba(26,24,20,.1);}
+.f-group{margin-bottom:14px;}
+.f-label{font-size:11px;color:var(--ink3);font-weight:600;margin-bottom:5px;display:block;text-transform:uppercase;letter-spacing:.4px;}
+.f-input{width:100%;padding:12px 14px;border-radius:var(--rsm);background:var(--surface2);border:1px solid var(--border2);color:var(--ink);font-size:15px;font-family:inherit;outline:none;transition:border-color .15s;-webkit-appearance:none;}
+.f-input:focus{border-color:var(--accent);}
+.auth-btn{width:100%;padding:14px;border-radius:var(--rsm);background:var(--accent);border:none;color:#fff;font-size:15px;font-weight:700;cursor:pointer;font-family:inherit;transition:background .15s;margin-top:4px;}
+.auth-btn:active{background:#b03d08;}
+.auth-hint{font-size:12px;color:var(--ink3);text-align:center;margin-top:14px;}
+.auth-switch{color:var(--accent);font-weight:600;cursor:pointer;}
+.auth-err{font-size:12px;color:var(--red);background:var(--red-l);padding:10px 12px;border-radius:var(--rsm);margin-bottom:12px;display:none;}
+.auth-err.show{display:block;}
+
+/* Header */
 .header{
   background:rgba(247,245,240,.95);backdrop-filter:blur(12px);
   padding:calc(var(--safe-top) + 12px) 18px 12px;
   border-bottom:1px solid var(--border);
-  display:flex;align-items:center;justify-content:space-between;
-  flex-shrink:0;
+  display:flex;align-items:center;justify-content:space-between;flex-shrink:0;
 }
 .header-title{font-size:17px;font-weight:700;letter-spacing:-.3px;}
 .header-sub{font-size:11px;color:var(--ink3);margin-top:1px;}
-.header-right{display:flex;gap:8px;}
-.icon-btn{
-  width:36px;height:36px;border-radius:50%;
-  background:var(--surface);border:1px solid var(--border2);
-  display:flex;align-items:center;justify-content:center;
-  font-size:17px;cursor:pointer;transition:background .15s;
-}
-.icon-btn:active{background:var(--surface2);}
+.icon-btn{width:36px;height:36px;border-radius:50%;background:var(--surface);border:1px solid var(--border2);display:flex;align-items:center;justify-content:center;font-size:17px;cursor:pointer;}
 
-/* ── Scrollable content ── */
+/* Scroll + pages */
 .scroll{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding-bottom:calc(var(--safe-bot) + 80px);}
 .page{padding:16px;}
 
-/* ── Summary cards ── */
+/* Summary */
 .sum-row{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px;}
-.sum-card{
-  background:var(--surface);border:1px solid var(--border);
-  border-radius:var(--r);padding:14px 16px;
-  box-shadow:0 1px 3px rgba(26,24,20,.06);
-}
+.sum-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:14px 16px;box-shadow:0 1px 3px rgba(26,24,20,.06);}
 .sum-lbl{font-size:10px;color:var(--ink3);font-weight:600;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px;}
 .sum-val{font-size:21px;font-weight:700;font-family:'DM Mono',monospace;letter-spacing:-1px;}
-.sum-sub{font-size:10px;color:var(--ink3);margin-top:3px;}
 .sum-card.exp .sum-val{color:var(--accent);}
+.sum-card.inc{cursor:pointer;transition:all .15s;}
 .sum-card.inc .sum-val{color:var(--green);}
+.sum-card.inc:active{background:var(--green-l);}
 .sum-card.bal .sum-val{color:var(--blue);}
 .sum-card.fix .sum-val{color:var(--amber);}
-.sum-card.inc{cursor:pointer;transition:all .15s;}
-.sum-card.inc:active{background:var(--green-l);border-color:rgba(45,122,79,.3);}
 .edit-hint{font-size:10px;color:var(--green);margin-top:3px;opacity:.7;}
-.inc-modal-body{padding:20px 18px;}
-.inc-item{display:flex;align-items:center;gap:10px;margin-bottom:12px;}
-.inc-item-label{font-size:13px;font-weight:600;color:var(--ink2);min-width:80px;}
-.inc-item-input{flex:1;padding:11px 14px;border-radius:var(--rsm);background:var(--surface2);border:1px solid var(--border2);color:var(--ink);font-size:15px;font-family:inherit;outline:none;-webkit-appearance:none;}
-.inc-item-input:focus{border-color:var(--green);}
-.inc-item-del{width:32px;height:32px;border-radius:50%;background:var(--red-l);border:none;color:var(--red);font-size:16px;cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center;}
-.add-inc-btn{width:100%;padding:11px;border-radius:var(--rsm);background:var(--green-l);border:1px dashed rgba(45,122,79,.4);color:var(--green);font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;margin-top:4px;}
 
-/* ── Upload button ── */
-.scan-btn{
-  width:100%;padding:18px;border-radius:var(--r);
-  background:var(--accent);border:none;color:#fff;
-  font-size:15px;font-weight:700;letter-spacing:-.2px;
-  cursor:pointer;transition:background .15s;margin-bottom:16px;
-  display:flex;align-items:center;justify-content:center;gap:10px;
-  font-family:inherit;
-}
+/* Scan btn */
+.scan-btn{width:100%;padding:18px;border-radius:var(--r);background:var(--accent);border:none;color:#fff;font-size:15px;font-weight:700;cursor:pointer;transition:background .15s;margin-bottom:16px;display:flex;align-items:center;justify-content:center;gap:10px;font-family:inherit;}
 .scan-btn:active{background:#b03d08;}
-.scan-btn .scan-icon{font-size:20px;}
+.scan-icon{font-size:20px;}
 
-/* ── Period selector ── */
-.period-row{display:flex;align-items:center;gap:10px;margin-bottom:16px;}
-.period-toggle{
-  display:flex;background:var(--surface);border:1px solid var(--border);
-  border-radius:var(--rsm);padding:3px;gap:2px;
-}
-.ptab{
-  padding:6px 14px;border-radius:7px;font-size:12px;font-weight:600;
-  color:var(--ink3);border:none;background:none;font-family:inherit;cursor:pointer;
-  transition:all .15s;
-}
+/* Period */
+.period-row{display:flex;align-items:center;gap:10px;margin-bottom:16px;flex-wrap:wrap;}
+.period-toggle{display:flex;background:var(--surface);border:1px solid var(--border);border-radius:var(--rsm);padding:3px;gap:2px;}
+.ptab{padding:6px 14px;border-radius:7px;font-size:12px;font-weight:600;color:var(--ink3);border:none;background:none;font-family:inherit;cursor:pointer;transition:all .15s;}
 .ptab.on{background:var(--surface);color:var(--ink);box-shadow:0 1px 3px rgba(26,24,20,.1);border:1px solid var(--border);}
 .period-nav{display:flex;align-items:center;gap:6px;margin-left:auto;}
-.pnav-btn{
-  width:28px;height:28px;border-radius:50%;border:1px solid var(--border2);
-  background:var(--surface);font-size:14px;cursor:pointer;
-  display:flex;align-items:center;justify-content:center;transition:background .15s;
-}
-.pnav-btn:active{background:var(--surface2);}
+.pnav-btn{width:28px;height:28px;border-radius:50%;border:1px solid var(--border2);background:var(--surface);font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center;}
 .period-lbl{font-size:14px;font-weight:700;white-space:nowrap;}
 
-/* ── Section header ── */
-.sec-hd{font-size:13px;font-weight:700;color:var(--ink2);margin-bottom:10px;display:flex;align-items:center;justify-content:space-between;}
-.sec-hd a{font-size:11px;color:var(--accent);font-weight:500;cursor:pointer;}
-
-/* ── Category chart ── */
+/* Cat bars */
 .cat-bar-list{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:14px 16px;margin-bottom:16px;}
 .cat-bar-row{display:grid;grid-template-columns:80px 1fr 68px;align-items:center;gap:10px;margin-bottom:8px;}
 .cat-bar-row:last-child{margin-bottom:0;}
@@ -125,112 +103,55 @@ body{font-family:'Noto Sans JP',sans-serif;color:var(--ink);}
 .cat-fill{height:100%;border-radius:3px;transition:width .5s ease;}
 .cat-amt{font-size:11px;font-family:'DM Mono',monospace;color:var(--ink3);text-align:right;}
 
-/* ── Transaction list ── */
+/* Txn list */
 .txn-list{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);overflow:hidden;margin-bottom:16px;}
 .day-hd{padding:8px 16px;background:var(--surface2);display:flex;justify-content:space-between;}
 .day-lbl{font-size:11px;font-weight:700;color:var(--ink3);}
 .day-tot{font-size:11px;font-weight:700;color:var(--accent);font-family:'DM Mono',monospace;}
-.txn-row{
-  padding:12px 16px;display:flex;align-items:center;gap:11px;
-  border-bottom:1px solid var(--border);cursor:pointer;transition:background .1s;
-}
+.txn-row{padding:12px 16px;display:flex;align-items:center;gap:11px;border-bottom:1px solid var(--border);cursor:pointer;transition:background .1s;}
 .txn-row:last-child{border-bottom:none;}
 .txn-row:active{background:var(--surface2);}
 .txn-ico{width:38px;height:38px;border-radius:11px;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;}
 .txn-body{flex:1;min-width:0;}
 .txn-name{font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-.txn-meta{font-size:11px;color:var(--ink3);margin-top:2px;display:flex;align-items:center;gap:5px;}
+.txn-meta{font-size:11px;color:var(--ink3);margin-top:2px;display:flex;align-items:center;gap:5px;flex-wrap:wrap;}
 .cat-pill{font-size:10px;font-weight:600;padding:1px 7px;border-radius:20px;}
 .who-pill{font-size:10px;padding:1px 6px;border-radius:20px;background:var(--surface3);color:var(--ink2);}
 .txn-amt{font-size:14px;font-weight:700;font-family:'DM Mono',monospace;flex-shrink:0;}
 .txn-amt.neg{color:var(--accent);}
 .txn-amt.pos{color:var(--green);}
 
-/* ── Bottom nav ── */
-.bottom-nav{
-  position:fixed;bottom:0;left:0;right:0;
-  background:rgba(247,245,240,.95);backdrop-filter:blur(12px);
-  border-top:1px solid var(--border);
-  padding:8px 0 calc(var(--safe-bot) + 8px);
-  display:flex;justify-content:space-around;
-  flex-shrink:0;z-index:50;
-}
-.bnav-item{
-  display:flex;flex-direction:column;align-items:center;gap:3px;
-  font-size:10px;font-weight:500;color:var(--ink3);cursor:pointer;
-  padding:4px 20px;transition:color .15s;
-}
-.bnav-item.on{color:var(--accent);}
-.bnav-icon{font-size:20px;}
+/* Family page */
+.family-code-box{background:var(--surface);border:2px solid var(--accent);border-radius:var(--r);padding:20px;margin-bottom:16px;text-align:center;}
+.family-code-lbl{font-size:11px;color:var(--ink3);font-weight:700;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px;}
+.family-code-val{font-size:40px;font-weight:700;letter-spacing:10px;color:var(--accent);font-family:'DM Mono',monospace;margin-bottom:12px;}
+.copy-btn{width:100%;padding:12px;border-radius:var(--rsm);background:var(--accent);border:none;color:#fff;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit;}
 
-/* ── Analyzing overlay ── */
-.overlay{
-  position:fixed;inset:0;background:rgba(247,245,240,.97);
-  z-index:200;display:flex;flex-direction:column;
-  align-items:center;justify-content:center;gap:16px;
-  display:none;
-}
-.overlay.show{display:flex;}
-.spin{width:40px;height:40px;border:3px solid var(--surface3);border-top-color:var(--accent);border-radius:50%;animation:spin .7s linear infinite;}
-@keyframes spin{to{transform:rotate(360deg)}}
-.overlay-title{font-size:16px;font-weight:700;color:var(--ink);}
-.step-list{font-size:13px;color:var(--ink2);line-height:2.2;text-align:center;}
-.step-done{color:var(--green);}
-.step-active{color:var(--accent);font-weight:600;}
+.member-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:14px 16px;margin-bottom:10px;display:flex;align-items:center;gap:12px;cursor:pointer;transition:border-color .15s;}
+.member-card:active{border-color:var(--accent);}
+.avatar{width:44px;height:44px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:700;flex-shrink:0;}
+.member-info{flex:1;}
+.member-name{font-size:15px;font-weight:700;}
+.member-role{font-size:12px;color:var(--ink3);}
+.member-arrow{font-size:16px;color:var(--ink3);}
 
-/* ── Receipt confirm sheet ── */
-.sheet-bg{
-  position:fixed;inset:0;background:rgba(26,24,20,.5);
-  z-index:300;display:none;align-items:flex-end;
-}
-.sheet-bg.open{display:flex;}
-.sheet{
-  background:var(--surface);border-radius:20px 20px 0 0;
-  width:100%;max-height:90vh;display:flex;flex-direction:column;
-  animation:slideUp .25s ease;
-}
+/* Member detail sheet */
+.detail-sheet{position:fixed;inset:0;background:rgba(26,24,20,.5);z-index:300;display:none;align-items:flex-end;}
+.detail-sheet.open{display:flex;}
+.detail-inner{background:var(--surface);border-radius:20px 20px 0 0;width:100%;max-height:85vh;display:flex;flex-direction:column;animation:slideUp .25s ease;}
 @keyframes slideUp{from{transform:translateY(100%)}to{transform:translateY(0)}}
-.sheet-handle{width:36px;height:4px;background:var(--surface3);border-radius:2px;margin:12px auto 0;}
-.sheet-hd{padding:14px 18px 10px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:flex-start;}
-.sheet-store{font-size:16px;font-weight:700;}
-.sheet-date{font-size:11px;color:var(--ink3);margin-top:2px;}
-.sheet-total{font-size:18px;font-weight:700;font-family:'DM Mono',monospace;color:var(--accent);}
-.sheet-scroll{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:12px 18px;}
-.item-row{
-  display:flex;align-items:center;gap:10px;
-  padding:10px 12px;background:var(--surface);border:1px solid var(--border);
-  border-radius:var(--rsm);margin-bottom:8px;
-}
-.item-em{font-size:18px;width:24px;flex-shrink:0;}
-.item-body{flex:1;min-width:0;}
-.item-name{font-size:13px;font-weight:600;}
-.item-qty{font-size:11px;color:var(--ink3);}
-.item-cat-badge{font-size:10px;font-weight:600;padding:2px 8px;border-radius:20px;flex-shrink:0;}
-.item-price{font-size:13px;font-weight:700;font-family:'DM Mono',monospace;flex-shrink:0;text-align:right;min-width:64px;}
-.sheet-footer{
-  padding:14px 18px;border-top:1px solid var(--border);
-  display:grid;grid-template-columns:1fr 2fr;gap:10px;
-  padding-bottom:calc(var(--safe-bot) + 14px);
-}
-.sheet-footer button{padding:13px;border-radius:var(--rsm);font-size:14px;font-weight:700;border:none;cursor:pointer;font-family:inherit;transition:all .15s;}
-.btn-cancel{background:var(--surface2);color:var(--ink2);}
-.btn-cancel:active{background:var(--surface3);}
-.btn-confirm{background:var(--accent);color:#fff;}
-.btn-confirm:active{background:#b03d08;}
+.detail-hd{padding:14px 18px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:12px;}
+.detail-scroll{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:16px 18px;padding-bottom:calc(env(safe-area-inset-bottom) + 16px);}
 
-/* ── Add modal ── */
+/* Modals */
 .modal-bg{position:fixed;inset:0;background:rgba(26,24,20,.5);z-index:300;display:none;align-items:flex-end;}
 .modal-bg.open{display:flex;}
 .modal{background:var(--surface);border-radius:20px 20px 0 0;width:100%;max-height:88vh;display:flex;flex-direction:column;animation:slideUp .25s ease;}
+.sheet-handle{width:36px;height:4px;background:var(--surface3);border-radius:2px;margin:12px auto 0;}
 .modal-hd{padding:16px 18px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;}
 .modal-hd h3{font-size:16px;font-weight:700;}
 .modal-close{background:none;border:none;font-size:22px;cursor:pointer;color:var(--ink3);line-height:1;padding:4px;}
 .modal-body{flex:1;overflow-y:auto;padding:16px 18px;}
-.f-group{margin-bottom:14px;}
-.f-label{font-size:12px;color:var(--ink3);font-weight:600;margin-bottom:5px;display:block;text-transform:uppercase;letter-spacing:.4px;}
-.f-input{width:100%;padding:12px 14px;border-radius:var(--rsm);background:var(--surface2);border:1px solid var(--border2);color:var(--ink);font-size:15px;font-family:inherit;outline:none;transition:border-color .15s;-webkit-appearance:none;}
-.f-input:focus{border-color:var(--accent);}
-.f-row{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
 .type-row{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px;}
 .type-btn{padding:12px;border-radius:var(--rsm);border:1px solid var(--border2);background:var(--surface2);font-size:14px;font-weight:700;color:var(--ink3);cursor:pointer;font-family:inherit;transition:all .15s;}
 .type-btn.on-exp{background:var(--accent-l);border-color:var(--accent);color:var(--accent);}
@@ -241,51 +162,123 @@ body{font-family:'Noto Sans JP',sans-serif;color:var(--ink);}
 .cat-em{font-size:20px;display:block;margin-bottom:4px;}
 .modal-footer{padding:14px 18px;border-top:1px solid var(--border);padding-bottom:calc(var(--safe-bot) + 14px);}
 .modal-footer .btn-confirm{width:100%;padding:14px;border-radius:var(--rsm);background:var(--accent);color:#fff;font-size:15px;font-weight:700;border:none;cursor:pointer;font-family:inherit;}
+.f-row{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
 
-/* ── Family page ── */
-.member-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:14px 16px;margin-bottom:10px;display:flex;align-items:center;gap:12px;}
-.avatar{width:44px;height:44px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:700;flex-shrink:0;}
-.member-info{flex:1;}
-.member-name{font-size:15px;font-weight:700;}
-.member-role{font-size:12px;color:var(--ink3);}
-.member-spend{font-size:14px;font-weight:700;font-family:'DM Mono',monospace;color:var(--accent);}
-.add-member-card{background:none;border:2px dashed var(--border2);border-radius:var(--r);padding:18px 16px;width:100%;display:flex;align-items:center;justify-content:center;gap:8px;font-size:14px;font-weight:600;color:var(--ink3);cursor:pointer;font-family:inherit;margin-top:4px;transition:all .15s;}
-.add-member-card:active{background:var(--surface2);}
+/* Income modal */
+.inc-item{display:flex;align-items:center;gap:10px;margin-bottom:12px;}
+.inc-item-input{flex:1;padding:11px 14px;border-radius:var(--rsm);background:var(--surface2);border:1px solid var(--border2);color:var(--ink);font-size:15px;font-family:inherit;outline:none;-webkit-appearance:none;}
+.inc-item-del{width:32px;height:32px;border-radius:50%;background:var(--red-l);border:none;color:var(--red);font-size:16px;cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center;}
+.add-inc-btn{width:100%;padding:11px;border-radius:var(--rsm);background:var(--green-l);border:1px dashed rgba(45,122,79,.4);color:var(--green);font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;margin-top:4px;}
 
-/* ── Toast ── */
+/* Scan sheet */
+.sheet-bg{position:fixed;inset:0;background:rgba(26,24,20,.5);z-index:300;display:none;align-items:flex-end;}
+.sheet-bg.open{display:flex;}
+.sheet{background:var(--surface);border-radius:20px 20px 0 0;width:100%;max-height:90vh;display:flex;flex-direction:column;animation:slideUp .25s ease;}
+.sheet-hd{padding:14px 18px 10px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:flex-start;}
+.sheet-store{font-size:16px;font-weight:700;}
+.sheet-date{font-size:11px;color:var(--ink3);margin-top:2px;}
+.sheet-total{font-size:18px;font-weight:700;font-family:'DM Mono',monospace;color:var(--accent);}
+.sheet-scroll{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:12px 18px;}
+.item-row{display:flex;align-items:center;gap:10px;padding:10px 12px;background:var(--surface);border:1px solid var(--border);border-radius:var(--rsm);margin-bottom:8px;}
+.item-em{font-size:18px;width:24px;flex-shrink:0;}
+.item-body{flex:1;min-width:0;}
+.item-name{font-size:13px;font-weight:600;}
+.item-qty{font-size:11px;color:var(--ink3);}
+.item-cat-badge{font-size:10px;font-weight:600;padding:2px 8px;border-radius:20px;flex-shrink:0;}
+.item-price{font-size:13px;font-weight:700;font-family:'DM Mono',monospace;flex-shrink:0;text-align:right;min-width:64px;}
+.sheet-footer{padding:14px 18px;border-top:1px solid var(--border);display:grid;grid-template-columns:1fr 2fr;gap:10px;padding-bottom:calc(var(--safe-bot) + 14px);}
+.sheet-footer button{padding:13px;border-radius:var(--rsm);font-size:14px;font-weight:700;border:none;cursor:pointer;font-family:inherit;transition:all .15s;}
+.btn-cancel{background:var(--surface2);color:var(--ink2);}
+.btn-confirm{background:var(--accent);color:#fff;}
+
+/* Overlay */
+.overlay{position:fixed;inset:0;background:rgba(247,245,240,.97);z-index:200;display:none;flex-direction:column;align-items:center;justify-content:center;gap:16px;}
+.overlay.show{display:flex;}
+.spin{width:40px;height:40px;border:3px solid var(--surface3);border-top-color:var(--accent);border-radius:50%;animation:spin .7s linear infinite;}
+@keyframes spin{to{transform:rotate(360deg)}}
+.overlay-title{font-size:16px;font-weight:700;}
+.step-list{font-size:13px;color:var(--ink2);line-height:2.2;text-align:center;}
+.step-done{color:var(--green);}
+.step-active{color:var(--accent);font-weight:600;}
+
+/* Error */
+.error-box{background:var(--red-l);border:1px solid rgba(220,38,38,.2);border-radius:var(--rsm);padding:14px;font-size:13px;color:var(--red);margin-bottom:12px;display:none;}
+.error-box.show{display:block;}
+
+/* Bottom nav */
+.bottom-nav{position:fixed;bottom:0;left:0;right:0;background:rgba(247,245,240,.95);backdrop-filter:blur(12px);border-top:1px solid var(--border);padding:8px 0 calc(var(--safe-bot) + 8px);display:flex;justify-content:space-around;flex-shrink:0;z-index:50;}
+.bnav-item{display:flex;flex-direction:column;align-items:center;gap:3px;font-size:10px;font-weight:500;color:var(--ink3);cursor:pointer;padding:4px 20px;transition:color .15s;}
+.bnav-item.on{color:var(--accent);}
+.bnav-icon{font-size:20px;}
+
+/* Toast */
 .toast{position:fixed;top:calc(var(--safe-top) + 60px);left:50%;transform:translateX(-50%) translateY(-20px);background:var(--ink);color:#fff;padding:11px 20px;border-radius:30px;font-size:13px;font-weight:600;z-index:400;opacity:0;transition:all .3s ease;white-space:nowrap;pointer-events:none;}
 .toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
 
-/* ── Error state ── */
-.error-box{background:var(--red-l);border:1px solid rgba(220,38,38,.2);border-radius:var(--rsm);padding:14px;font-size:13px;color:var(--red);margin-bottom:12px;display:none;}
-.error-box.show{display:block;}
+/* Loading bar */
+#loading-bar{position:fixed;top:0;left:0;right:0;height:3px;background:var(--accent);z-index:999;opacity:0;transition:opacity .3s;}
 </style>
 </head>
 <body>
-<div class="app">
 
-  <!-- Header -->
+<!-- ── Auth Screen ── -->
+<div class="auth-screen" id="auth-screen">
+  <div class="auth-logo">🧾</div>
+  <div class="auth-title">レシート家計簿</div>
+  <div class="auth-sub">家族みんなで使える AI 家計簿</div>
+
+  <div class="auth-card">
+    <div class="auth-tabs">
+      <button class="auth-tab on" onclick="switchAuthTab('login',this)">ログイン</button>
+      <button class="auth-tab" onclick="switchAuthTab('signup',this)">新規登録</button>
+    </div>
+
+    <div class="auth-err" id="auth-err"></div>
+
+    <!-- Login form -->
+    <div id="form-login">
+      <div class="f-group"><label class="f-label">メールアドレス</label><input class="f-input" id="l-email" type="email" placeholder="example@email.com" autocomplete="email"></div>
+      <div class="f-group"><label class="f-label">パスワード</label><input class="f-input" id="l-pass" type="password" placeholder="••••••••" autocomplete="current-password"></div>
+      <button class="auth-btn" onclick="doLogin()">ログイン</button>
+    </div>
+
+    <!-- Signup form -->
+    <div id="form-signup" style="display:none;">
+      <div class="f-group"><label class="f-label">お名前</label><input class="f-input" id="s-name" type="text" placeholder="山田 太郎"></div>
+      <div class="f-group"><label class="f-label">メールアドレス</label><input class="f-input" id="s-email" type="email" placeholder="example@email.com" autocomplete="email"></div>
+      <div class="f-group"><label class="f-label">パスワード（6文字以上）</label><input class="f-input" id="s-pass" type="password" placeholder="••••••••" autocomplete="new-password"></div>
+      <div class="f-group">
+        <label class="f-label">家族コード（お持ちの方のみ）</label>
+        <input class="f-input" id="s-code" type="text" placeholder="例: AB3X7K（なければ空欄）" style="text-transform:uppercase;letter-spacing:2px;" oninput="this.value=this.value.toUpperCase()">
+        <div style="font-size:11px;color:var(--ink3);margin-top:4px;">空欄の場合は管理者として新しい家族を作成します</div>
+      </div>
+      <button class="auth-btn" onclick="doSignup()">登録する</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── Main App ── -->
+<div class="app" id="main-app" style="display:none;">
   <div class="header">
     <div>
       <div class="header-title" id="page-title">🧾 家計簿</div>
       <div class="header-sub" id="page-sub"></div>
     </div>
-    <div class="header-right">
-      <div class="icon-btn" onclick="openAdd()">＋</div>
+    <div style="display:flex;gap:8px;">
+      <div class="icon-btn" onclick="openAdd()" id="add-btn">＋</div>
+      <div class="icon-btn" onclick="doLogout()" title="ログアウト">⏻</div>
     </div>
   </div>
 
   <!-- File inputs -->
   <input type="file" id="file-gallery" accept="image/*" style="display:none" onchange="handleFile(this)">
   <input type="file" id="file-camera" accept="image/*" capture="environment" style="display:none" onchange="handleFile(this)">
-  <input type="file" id="file-any" accept="image/*,application/pdf" style="display:none" onchange="handleFile(this)">
+  <input type="file" id="file-any" accept="image/*" style="display:none" onchange="handleFile(this)">
 
-  <!-- Scroll area -->
   <div class="scroll" id="scroll">
 
-    <!-- Dashboard page -->
+    <!-- Home page -->
     <div class="page" id="pg-home">
-      <!-- Period -->
       <div class="period-row">
         <div class="period-toggle">
           <button class="ptab on" onclick="setPeriod('month',this)">月別</button>
@@ -298,66 +291,48 @@ body{font-family:'Noto Sans JP',sans-serif;color:var(--ink);}
         </div>
       </div>
 
-      <!-- Summary -->
       <div class="sum-row">
         <div class="sum-card exp"><div class="sum-lbl">支出</div><div class="sum-val" id="s-exp">¥0</div></div>
         <div class="sum-card inc" onclick="openIncomeModal()">
           <div class="sum-lbl">収入</div>
           <div class="sum-val" id="s-inc">¥0</div>
-          <div class="edit-hint">タップして編集 ✎</div>
+          <div class="edit-hint" id="inc-hint" style="display:none;">タップして編集 ✎</div>
         </div>
         <div class="sum-card bal"><div class="sum-lbl">残高</div><div class="sum-val" id="s-bal">¥0</div></div>
         <div class="sum-card fix"><div class="sum-lbl">固定費</div><div class="sum-val" id="s-fix">¥0</div></div>
       </div>
 
-      <!-- Scan button -->
-      <button class="scan-btn" onclick="openScanSheet()" style="margin-bottom:16px;">
+      <button class="scan-btn" onclick="openScanSheet()">
         <span class="scan-icon">📷</span>レシートをスキャン
       </button>
 
-      <!-- Error -->
       <div class="error-box" id="error-box"></div>
 
-      <!-- Category bars -->
-      <div class="sec-hd">カテゴリ別支出</div>
+      <div style="font-size:13px;font-weight:700;color:var(--ink2);margin-bottom:10px;">カテゴリ別支出</div>
       <div class="cat-bar-list" id="cat-bars"></div>
 
-      <!-- Transactions -->
-      <div class="sec-hd" style="margin-top:16px;">最近の取引</div>
+      <div style="font-size:13px;font-weight:700;color:var(--ink2);margin:16px 0 10px;">最近の取引</div>
       <div class="txn-list" id="txn-list"></div>
     </div>
 
     <!-- Family page -->
-    <div class="page" id="pg-family" style="display:none">
+    <div class="page" id="pg-family" style="display:none;">
 
-      <!-- 공유 코드 카드 -->
-      <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:20px;margin-bottom:16px;text-align:center;">
-        <div style="font-size:12px;color:var(--ink3);font-weight:600;text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px;">あなたの家族コード</div>
-        <div id="family-code-display" style="font-size:36px;font-weight:700;letter-spacing:8px;color:var(--accent);font-family:'DM Mono',monospace;margin-bottom:14px;"></div>
-        <div style="font-size:12px;color:var(--ink3);margin-bottom:16px;">このコードを家族に共有してください</div>
-        <button onclick="copyFamilyCode()" style="width:100%;padding:13px;border-radius:var(--rsm);background:var(--accent);border:none;color:#fff;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit;">
-          コードをコピー
-        </button>
+      <!-- 관리자만 보이는 가족 코드 -->
+      <div id="admin-code-section" style="display:none;">
+        <div class="family-code-box">
+          <div class="family-code-lbl">あなたの家族コード</div>
+          <div class="family-code-val" id="code-display"></div>
+          <div style="font-size:12px;color:var(--ink3);margin-bottom:14px;">このコードを家族に共有してください</div>
+          <button class="copy-btn" onclick="copyCode()">コードをコピー 📋</button>
+        </div>
       </div>
 
-      <!-- 가족 참가 카드 -->
-      <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:20px;margin-bottom:16px;">
-        <div style="font-size:13px;font-weight:700;margin-bottom:6px;">家族のコードで参加</div>
-        <div style="font-size:12px;color:var(--ink3);margin-bottom:14px;">家族から受け取ったコードを入力してください。入力後、家族と同じ収支データが共有されます。</div>
-        <input id="join-code-input" class="f-input" placeholder="例: AB3X7K" maxlength="8"
-          style="text-transform:uppercase;letter-spacing:4px;font-size:18px;text-align:center;font-family:'DM Mono',monospace;margin-bottom:10px;"
-          oninput="this.value=this.value.toUpperCase()">
-        <button onclick="joinWithCode()" style="width:100%;padding:13px;border-radius:var(--rsm);background:var(--surface2);border:1px solid var(--border2);color:var(--ink);font-size:14px;font-weight:700;cursor:pointer;font-family:inherit;">
-          参加する →
-        </button>
-      </div>
-
-      <!-- 현재 공유 중인 멤버들 -->
-      <div style="font-size:13px;font-weight:700;color:var(--ink2);margin-bottom:10px;">共有メンバー</div>
+      <!-- 멤버 목록 -->
+      <div style="font-size:13px;font-weight:700;color:var(--ink2);margin-bottom:10px;">家族メンバー</div>
       <div id="member-list"></div>
 
     </div>
-
   </div>
 
   <!-- Bottom nav -->
@@ -365,54 +340,37 @@ body{font-family:'Noto Sans JP',sans-serif;color:var(--ink);}
     <div class="bnav-item on" onclick="goPage('home',this)"><div class="bnav-icon">🏠</div>ホーム</div>
     <div class="bnav-item" onclick="goPage('family',this)"><div class="bnav-icon">👨‍👩‍👧</div>家族</div>
     <div class="bnav-item" onclick="goPage('home',this)"><div class="bnav-icon">📊</div>レポート</div>
-    <div class="bnav-item" onclick="goPage('home',this)"><div class="bnav-icon">⚙️</div>設定</div>
   </div>
 </div>
 
 <!-- Scan action sheet -->
-<div class="modal-bg" id="scan-sheet" onclick="if(event.target===this)closeModal('scan-sheet')">
-  <div class="modal" style="max-height:auto;">
+<div class="sheet-bg" id="scan-sheet" onclick="if(event.target===this)closeModal('scan-sheet')">
+  <div class="modal">
     <div class="sheet-handle"></div>
     <div style="padding:16px 18px 8px;">
       <div style="font-size:15px;font-weight:700;margin-bottom:4px;">レシートを追加</div>
       <div style="font-size:12px;color:var(--ink3);">スキャン方法を選んでください</div>
     </div>
     <div style="padding:8px 18px 0;">
-      <button onclick="closeModal('scan-sheet');setTimeout(()=>document.getElementById('file-camera').click(),200)"
-        style="width:100%;padding:15px 16px;margin-bottom:10px;border-radius:var(--rsm);background:var(--surface2);border:1px solid var(--border);font-size:15px;font-weight:600;color:var(--ink);cursor:pointer;font-family:inherit;display:flex;align-items:center;gap:12px;text-align:left;">
-        <span style="font-size:24px;">📷</span>
-        <div><div>カメラで撮影</div><div style="font-size:11px;color:var(--ink3);font-weight:400;">今すぐ撮影する</div></div>
+      <button onclick="closeModal('scan-sheet');setTimeout(()=>document.getElementById('file-camera').click(),200)" style="width:100%;padding:15px 16px;margin-bottom:10px;border-radius:var(--rsm);background:var(--surface2);border:1px solid var(--border);font-size:15px;font-weight:600;color:var(--ink);cursor:pointer;font-family:inherit;display:flex;align-items:center;gap:12px;">
+        <span style="font-size:24px;">📷</span><div><div>カメラで撮影</div><div style="font-size:11px;color:var(--ink3);font-weight:400;">今すぐ撮影する</div></div>
       </button>
-      <button onclick="closeModal('scan-sheet');setTimeout(()=>document.getElementById('file-gallery').click(),200)"
-        style="width:100%;padding:15px 16px;margin-bottom:10px;border-radius:var(--rsm);background:var(--surface2);border:1px solid var(--border);font-size:15px;font-weight:600;color:var(--ink);cursor:pointer;font-family:inherit;display:flex;align-items:center;gap:12px;text-align:left;">
-        <span style="font-size:24px;">🖼️</span>
-        <div><div>写真アルバムから選ぶ</div><div style="font-size:11px;color:var(--ink3);font-weight:400;">保存済みの写真を使う</div></div>
+      <button onclick="closeModal('scan-sheet');setTimeout(()=>document.getElementById('file-gallery').click(),200)" style="width:100%;padding:15px 16px;margin-bottom:10px;border-radius:var(--rsm);background:var(--surface2);border:1px solid var(--border);font-size:15px;font-weight:600;color:var(--ink);cursor:pointer;font-family:inherit;display:flex;align-items:center;gap:12px;">
+        <span style="font-size:24px;">🖼️</span><div><div>写真アルバムから選ぶ</div><div style="font-size:11px;color:var(--ink3);font-weight:400;">保存済みの写真を使う</div></div>
       </button>
-      <button onclick="closeModal('scan-sheet');setTimeout(()=>document.getElementById('file-any').click(),200)"
-        style="width:100%;padding:15px 16px;margin-bottom:10px;border-radius:var(--rsm);background:var(--surface2);border:1px solid var(--border);font-size:15px;font-weight:600;color:var(--ink);cursor:pointer;font-family:inherit;display:flex;align-items:center;gap:12px;text-align:left;">
-        <span style="font-size:24px;">📁</span>
-        <div><div>ファイルから選ぶ</div><div style="font-size:11px;color:var(--ink3);font-weight:400;">Files アプリなど</div></div>
+      <button onclick="closeModal('scan-sheet');setTimeout(()=>document.getElementById('file-any').click(),200)" style="width:100%;padding:15px 16px;margin-bottom:10px;border-radius:var(--rsm);background:var(--surface2);border:1px solid var(--border);font-size:15px;font-weight:600;color:var(--ink);cursor:pointer;font-family:inherit;display:flex;align-items:center;gap:12px;">
+        <span style="font-size:24px;">📁</span><div><div>ファイルから選ぶ</div><div style="font-size:11px;color:var(--ink3);font-weight:400;">Filesアプリなど</div></div>
       </button>
     </div>
     <div style="padding:8px 18px;padding-bottom:calc(env(safe-area-inset-bottom) + 16px);">
-      <button onclick="closeModal('scan-sheet')"
-        style="width:100%;padding:14px;border-radius:var(--rsm);background:var(--surface3);border:none;font-size:15px;font-weight:700;color:var(--ink2);cursor:pointer;font-family:inherit;">
-        キャンセル
-      </button>
+      <button onclick="closeModal('scan-sheet')" style="width:100%;padding:14px;border-radius:var(--rsm);background:var(--surface3);border:none;font-size:15px;font-weight:700;color:var(--ink2);cursor:pointer;font-family:inherit;">キャンセル</button>
     </div>
   </div>
 </div>
 
-<!-- Analyzing overlay -->
-<div class="overlay" id="overlay">
-  <div class="spin"></div>
-  <div class="overlay-title">AIが解析中...</div>
-  <div class="step-list" id="step-list"></div>
-</div>
-
 <!-- Receipt confirm sheet -->
-<div class="sheet-bg" id="sheet-bg" onclick="sheetBgClick(event)">
-  <div class="sheet" id="sheet">
+<div class="sheet-bg" id="receipt-sheet" onclick="sheetBgClick(event)">
+  <div class="sheet" id="receipt-inner">
     <div class="sheet-handle"></div>
     <div class="sheet-hd">
       <div><div class="sheet-store" id="sh-store"></div><div class="sheet-date" id="sh-date"></div></div>
@@ -420,16 +378,16 @@ body{font-family:'Noto Sans JP',sans-serif;color:var(--ink);}
     </div>
     <div class="sheet-scroll" id="sh-items"></div>
     <div class="sheet-footer">
-      <button class="btn-cancel" onclick="closeSheet()">やり直す</button>
+      <button class="btn-cancel" onclick="closeReceiptSheet()">やり直す</button>
       <button class="btn-confirm" onclick="confirmSheet()">✓ 登録する</button>
     </div>
   </div>
 </div>
 
 <!-- Add manual modal -->
-<div class="modal-bg" id="add-modal" onclick="modalBgClick(event)">
-  <div class="modal" id="modal-inner">
-    <div class="modal-hd"><h3>手動入力</h3><button class="modal-close" onclick="closeAdd()">×</button></div>
+<div class="modal-bg" id="add-modal" onclick="if(event.target===this)closeModal('add-modal')">
+  <div class="modal">
+    <div class="modal-hd"><h3>手動入力</h3><button class="modal-close" onclick="closeModal('add-modal')">×</button></div>
     <div class="modal-body">
       <div class="type-row">
         <button class="type-btn on-exp" id="tb-exp" onclick="setType('expense')">💸 支出</button>
@@ -448,32 +406,12 @@ body{font-family:'Noto Sans JP',sans-serif;color:var(--ink);}
   </div>
 </div>
 
-<!-- Add member modal -->
-<div class="modal-bg" id="member-modal" onclick="if(event.target===this)closeModal('member-modal')">
-  <div class="modal" style="max-height:60vh;">
-    <div class="modal-hd"><h3>メンバー追加</h3><button class="modal-close" onclick="closeModal('member-modal')">×</button></div>
-    <div class="modal-body">
-      <div class="f-group"><label class="f-label">名前</label><input class="f-input" id="m-name" placeholder="山田太郎"></div>
-      <div class="f-group"><label class="f-label">役割</label>
-        <select class="f-input" id="m-role"><option>パパ</option><option>ママ</option><option>子供</option><option>その他</option></select>
-      </div>
-      <div class="f-group"><label class="f-label">カラー</label>
-        <div style="display:flex;gap:10px;flex-wrap:wrap;" id="color-row"></div>
-      </div>
-    </div>
-    <div class="modal-footer"><button class="btn-confirm" onclick="submitMember()">追加する</button></div>
-  </div>
-</div>
-
 <!-- Income edit modal -->
 <div class="modal-bg" id="income-modal" onclick="if(event.target===this)closeModal('income-modal')">
   <div class="modal" style="max-height:80vh;">
-    <div class="modal-hd">
-      <h3>💰 収入を編集</h3>
-      <button class="modal-close" onclick="closeModal('income-modal')">×</button>
-    </div>
-    <div class="inc-modal-body">
-      <div style="font-size:12px;color:var(--ink3);margin-bottom:14px;">今月の収入を入力してください。複数ある場合は追加できます。</div>
+    <div class="modal-hd"><h3>💰 収入を編集</h3><button class="modal-close" onclick="closeModal('income-modal')">×</button></div>
+    <div style="padding:16px 18px;flex:1;overflow-y:auto;">
+      <div style="font-size:12px;color:var(--ink3);margin-bottom:14px;">今月の収入を入力してください</div>
       <div id="inc-items-list"></div>
       <button class="add-inc-btn" onclick="addIncItem()">＋ 収入を追加</button>
     </div>
@@ -481,155 +419,192 @@ body{font-family:'Noto Sans JP',sans-serif;color:var(--ink);}
   </div>
 </div>
 
+<!-- Member detail sheet -->
+<div class="detail-sheet" id="detail-sheet" onclick="if(event.target===this)closeDetailSheet()">
+  <div class="detail-inner">
+    <div class="sheet-handle"></div>
+    <div class="detail-hd">
+      <div class="avatar" id="detail-avatar" style="width:40px;height:40px;font-size:18px;"></div>
+      <div>
+        <div style="font-size:16px;font-weight:700;" id="detail-name"></div>
+        <div style="font-size:12px;color:var(--ink3);" id="detail-role"></div>
+      </div>
+      <button onclick="closeDetailSheet()" style="margin-left:auto;background:none;border:none;font-size:22px;color:var(--ink3);cursor:pointer;">×</button>
+    </div>
+    <div class="detail-scroll" id="detail-txns">
+      <div style="text-align:center;padding:24px;color:var(--ink3);font-size:13px;">読み込み中...</div>
+    </div>
+  </div>
+</div>
+
+<!-- Analyzing overlay -->
+<div class="overlay" id="overlay">
+  <div class="spin"></div>
+  <div class="overlay-title">AIが解析中...</div>
+  <div class="step-list" id="step-list"></div>
+</div>
+
+<div id="loading-bar"></div>
 <div class="toast" id="toast"></div>
 
 <script>
 const CATS=[
-  {id:'食料品',em:'🛒',color:'#2d7a4f'},
-  {id:'外食',em:'🍜',color:'#c8490a'},
-  {id:'日用品',em:'🧴',color:'#1a5fa8'},
-  {id:'交通',em:'🚌',color:'#7c3aed'},
-  {id:'医療',em:'💊',color:'#e11d48'},
-  {id:'エンタメ',em:'🎮',color:'#d97706'},
-  {id:'衣類',em:'👗',color:'#db2777'},
-  {id:'固定費',em:'🏠',color:'#b87000'},
-  {id:'収入',em:'💰',color:'#2d7a4f'},
-  {id:'その他',em:'📦',color:'#6b7280'},
+  {id:'食料品',em:'🛒',color:'#2d7a4f'},{id:'外食',em:'🍜',color:'#c8490a'},
+  {id:'日用品',em:'🧴',color:'#1a5fa8'},{id:'交通',em:'🚌',color:'#7c3aed'},
+  {id:'医療',em:'💊',color:'#e11d48'},{id:'エンタメ',em:'🎮',color:'#d97706'},
+  {id:'衣類',em:'👗',color:'#db2777'},{id:'固定費',em:'🏠',color:'#b87000'},
+  {id:'収入',em:'💰',color:'#2d7a4f'},{id:'その他',em:'📦',color:'#6b7280'},
 ];
 const catMap=Object.fromEntries(CATS.map(c=>[c.id,c]));
 const COLORS=['#c8490a','#1a5fa8','#2d7a4f','#7c3aed','#d97706','#db2777'];
 const yen=n=>'¥'+Math.abs(n).toLocaleString('ja-JP');
 
+// ── Session state ───────────────────────────
+let session = JSON.parse(localStorage.getItem('kakeibo_session')||'null');
+let family=[], txns=[];
 let periodMode='month', curOffset=0, selCat='食料品', selType2='expense', selColor=COLORS[0];
 let pendingReceipt=null;
 const now=new Date();
 
-function dayStr(monthOff, day) {
-  const dt = new Date(now.getFullYear(), now.getMonth() + monthOff, day);
-  const y = dt.getFullYear();
-  const m = String(dt.getMonth() + 1).padStart(2, '0');
-  const d = String(dt.getDate()).padStart(2, '0');
-  return `${y}-${m}-${d}`;
+// ── Helpers ─────────────────────────────────
+function showLoading(on){document.getElementById('loading-bar').style.opacity=on?'1':'0';}
+function toast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2800);}
+function showError(msg){const e=document.getElementById('error-box');e.textContent=msg;e.classList.add('show');}
+function hideError(){document.getElementById('error-box').classList.remove('show');}
+function closeModal(id){document.getElementById(id).classList.remove('open');}
+
+// ── Auth ────────────────────────────────────
+function switchAuthTab(tab, el){
+  document.querySelectorAll('.auth-tab').forEach(b=>b.classList.remove('on'));
+  el.classList.add('on');
+  document.getElementById('form-login').style.display=tab==='login'?'':'none';
+  document.getElementById('form-signup').style.display=tab==='signup'?'':'none';
+  document.getElementById('auth-err').classList.remove('show');
 }
 
-// ── Supabase DB ─────────────────────────────
-async function dbCall(action, data={}) {
-  const res = await fetch('/api/db', {
-    method: 'POST',
-    headers: {'Content-Type':'application/json'},
-    body: JSON.stringify({ action, familyCode, data })
-  });
-  if (!res.ok) throw new Error('DB error');
+async function authCall(action, body){
+  const res=await fetch('/api/auth',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action,...body})});
+  const data=await res.json();
+  if(!res.ok) throw new Error(data.error||'エラーが発生しました');
+  return data;
+}
+
+async function doLogin(){
+  const email=document.getElementById('l-email').value.trim();
+  const pass=document.getElementById('l-pass').value;
+  if(!email||!pass){showAuthErr('メールとパスワードを入力してください');return;}
+  try{
+    showLoading(true);
+    const data=await authCall('signin',{email,password:pass});
+    saveSession(data);
+    startApp();
+  }catch(e){showAuthErr(e.message);}
+  finally{showLoading(false);}
+}
+
+async function doSignup(){
+  const name=document.getElementById('s-name').value.trim();
+  const email=document.getElementById('s-email').value.trim();
+  const pass=document.getElementById('s-pass').value;
+  const code=document.getElementById('s-code').value.trim().toUpperCase();
+  if(!name||!email||!pass){showAuthErr('すべての項目を入力してください');return;}
+  if(pass.length<6){showAuthErr('パスワードは6文字以上にしてください');return;}
+  try{
+    showLoading(true);
+    const action=code?'signupMember':'signupAdmin';
+    const data=await authCall(action,{email,password:pass,name,familyCode:code});
+    saveSession(data);
+    startApp();
+  }catch(e){showAuthErr(e.message);}
+  finally{showLoading(false);}
+}
+
+function showAuthErr(msg){const e=document.getElementById('auth-err');e.textContent=msg;e.classList.add('show');}
+
+function saveSession(data){
+  session={token:data.token,role:data.role,familyCode:data.familyCode,name:data.name,color:data.color,userId:data.user?.id||data.userId};
+  localStorage.setItem('kakeibo_session',JSON.stringify(session));
+}
+
+function doLogout(){
+  if(!confirm('ログアウトしますか？')) return;
+  localStorage.removeItem('kakeibo_session');
+  session=null; family=[]; txns=[];
+  document.getElementById('main-app').style.display='none';
+  document.getElementById('auth-screen').style.display='flex';
+}
+
+// ── DB calls ────────────────────────────────
+async function dbCall(action,data={}){
+  const res=await fetch('/api/db',{method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({action,familyCode:session.familyCode,token:session.token,data})});
+  if(!res.ok) throw new Error('DB error');
   return res.json();
 }
 
-// ── Family code system ──────────────────────
-let familyCode = localStorage.getItem('kakeibo_family_code') || '';
+// ── App init ────────────────────────────────
+async function startApp(){
+  document.getElementById('auth-screen').style.display='none';
+  document.getElementById('main-app').style.display='flex';
+  document.getElementById('page-sub').textContent=`${now.getFullYear()}年${now.getMonth()+1}月${now.getDate()}日`;
 
-function generateCode() {
-  return Math.random().toString(36).substring(2,8).toUpperCase();
-}
-
-async function initFamily() {
-  if (!familyCode) {
-    // 새 가족 코드 생성
-    familyCode = generateCode();
-    localStorage.setItem('kakeibo_family_code', familyCode);
-    // 기본 멤버 생성
-    const m = {id:'m_'+Date.now(), name:'自分', role:'本人', color:'#1a5fa8'};
-    await dbCall('addMember', m);
-    family = [m];
-  } else {
-    // 기존 코드로 데이터 불러오기
-    await loadFromDB();
+  // 관리자만 수입 편집 + 家族コード 표시
+  if(session.role==='admin'){
+    document.getElementById('inc-hint').style.display='block';
   }
-}
 
-async function loadFromDB() {
-  try {
-    showLoading(true);
-    const [members, txnRows] = await Promise.all([
-      dbCall('getMembers'),
-      dbCall('getTxns'),
-    ]);
-    if (members.length) family = members;
-    txns = txnRows.map(r => ({
-      id: r.id, date: r.date, name: r.name,
-      amount: r.amount, type: r.type, cat: r.cat,
-      who: r.who, fixed: r.fixed
-    }));
-  } catch(e) {
-    toast('⚠ データの読み込みに失敗しました');
-  } finally {
-    showLoading(false);
-  }
-}
-
-function showLoading(on) {
-  let el = document.getElementById('loading-bar');
-  if (!el) {
-    el = document.createElement('div');
-    el.id = 'loading-bar';
-    el.style.cssText = 'position:fixed;top:0;left:0;right:0;height:3px;background:var(--accent);z-index:999;transition:opacity .3s;';
-    document.body.appendChild(el);
-  }
-  el.style.opacity = on ? '1' : '0';
-}
-
-// ── Default empty state ─────────────────────
-let family = [];
-let txns = [];
-
-// ── Period ─────────────────────────────────
-function getPeriodLabel(){
-  if(periodMode==='month'){
-    const dt=new Date(now.getFullYear(),now.getMonth()+curOffset,1);
-    return `${dt.getFullYear()}年${dt.getMonth()+1}月`;
-  }
-  const b=new Date(now.getFullYear(),now.getMonth()+curOffset,25);
-  const e=new Date(now.getFullYear(),now.getMonth()+curOffset+1,24);
-  return `${b.getMonth()+1}/25〜${e.getMonth()+1}/24`;
-}
-function getPeriodTxns(){
-  return txns.filter(t=>{
-    const dt=new Date(t.date+'T00:00:00');
-    if(periodMode==='month'){
-      const base=new Date(now.getFullYear(),now.getMonth()+curOffset,1);
-      return dt.getFullYear()===base.getFullYear()&&dt.getMonth()===base.getMonth();
-    }
-    const s=new Date(now.getFullYear(),now.getMonth()+curOffset-1,25);
-    const e=new Date(now.getFullYear(),now.getMonth()+curOffset,24);
-    return dt>=s&&dt<=e;
-  });
-}
-function setPeriod(m,el){
-  periodMode=m;
-  document.querySelectorAll('.ptab').forEach(b=>b.classList.remove('on'));
-  el.classList.add('on');
+  await loadFromDB();
   renderAll();
 }
-function chPeriod(d){curOffset+=d;renderAll();}
 
-// ── Render ─────────────────────────────────
+async function loadFromDB(){
+  try{
+    showLoading(true);
+    const [members,txnRows]=await Promise.all([dbCall('getMembers'),dbCall('getTxns')]);
+    family=members;
+    txns=txnRows.map(r=>({id:r.id,date:r.date,name:r.name,amount:r.amount,type:r.type,cat:r.cat,who:r.who,fixed:r.fixed}));
+  }catch(e){toast('⚠ データの読み込みに失敗しました');}
+  finally{showLoading(false);}
+}
+
+// ── Render ───────────────────────────────────
 function renderAll(){
   document.getElementById('period-lbl').textContent=getPeriodLabel();
   const t=getPeriodTxns();
   const exp=t.filter(x=>x.type==='expense');
   const inc=t.filter(x=>x.type==='income');
   const fix=t.filter(x=>x.fixed);
-  const expSum=exp.reduce((s,x)=>s+x.amount,0);
-  const incSum=inc.reduce((s,x)=>s+x.amount,0);
-  const fixSum=fix.reduce((s,x)=>s+x.amount,0);
-  document.getElementById('s-exp').textContent=yen(expSum);
-  document.getElementById('s-inc').textContent=yen(incSum);
-  document.getElementById('s-bal').textContent=yen(incSum-expSum);
-  document.getElementById('s-fix').textContent=yen(fixSum);
-  renderCatBars(exp,expSum);
+  document.getElementById('s-exp').textContent=yen(exp.reduce((s,x)=>s+x.amount,0));
+  document.getElementById('s-inc').textContent=yen(inc.reduce((s,x)=>s+x.amount,0));
+  document.getElementById('s-bal').textContent=yen(inc.reduce((s,x)=>s+x.amount,0)-exp.reduce((s,x)=>s+x.amount,0));
+  document.getElementById('s-fix').textContent=yen(fix.reduce((s,x)=>s+x.amount,0));
+  renderCatBars(exp);
   renderTxns(t);
   renderMembers();
 }
 
-function renderCatBars(exp,total){
+function getPeriodLabel(){
+  if(periodMode==='month'){const dt=new Date(now.getFullYear(),now.getMonth()+curOffset,1);return `${dt.getFullYear()}年${dt.getMonth()+1}月`;}
+  const b=new Date(now.getFullYear(),now.getMonth()+curOffset,25);
+  const e=new Date(now.getFullYear(),now.getMonth()+curOffset+1,24);
+  return `${b.getMonth()+1}/25〜${e.getMonth()+1}/24`;
+}
+
+function getPeriodTxns(){
+  return txns.filter(t=>{
+    const dt=new Date(t.date+'T00:00:00');
+    if(periodMode==='month'){const b=new Date(now.getFullYear(),now.getMonth()+curOffset,1);return dt.getFullYear()===b.getFullYear()&&dt.getMonth()===b.getMonth();}
+    const s=new Date(now.getFullYear(),now.getMonth()+curOffset-1,25);
+    const e=new Date(now.getFullYear(),now.getMonth()+curOffset,24);
+    return dt>=s&&dt<=e;
+  });
+}
+
+function setPeriod(m,el){periodMode=m;document.querySelectorAll('.ptab').forEach(b=>b.classList.remove('on'));el.classList.add('on');renderAll();}
+function chPeriod(d){curOffset+=d;renderAll();}
+
+function renderCatBars(exp){
+  const total=exp.reduce((s,x)=>s+x.amount,0)||1;
   const bycat={};
   exp.forEach(x=>{bycat[x.cat]=(bycat[x.cat]||0)+x.amount;});
   const sorted=Object.entries(bycat).sort((a,b)=>b[1]-a[1]).slice(0,5);
@@ -637,17 +612,13 @@ function renderCatBars(exp,total){
   if(!sorted.length){el.innerHTML='<div style="font-size:13px;color:var(--ink3);text-align:center;padding:12px;">データなし</div>';return;}
   el.innerHTML=sorted.map(([id,amt])=>{
     const c=catMap[id]||catMap['その他'];
-    const pct=total?Math.round(amt/total*100):0;
-    return `<div class="cat-bar-row">
-      <div class="cat-bar-lbl"><span class="cat-dot" style="background:${c.color}"></span>${c.em} ${c.id}</div>
-      <div class="cat-track"><div class="cat-fill" style="width:${pct}%;background:${c.color}"></div></div>
-      <div class="cat-amt">${yen(amt)}</div>
-    </div>`;
+    const pct=Math.round(amt/total*100);
+    return `<div class="cat-bar-row"><div class="cat-bar-lbl"><span class="cat-dot" style="background:${c.color}"></span>${c.em} ${c.id}</div><div class="cat-track"><div class="cat-fill" style="width:${pct}%;background:${c.color}"></div></div><div class="cat-amt">${yen(amt)}</div></div>`;
   }).join('');
 }
 
 function renderTxns(t){
-  const sorted=[...t].sort((a,b)=>b.date.localeCompare(a.date)).slice(0,30);
+  const sorted=[...t].sort((a,b)=>b.date.localeCompare(a.date)).slice(0,40);
   const groups={};
   sorted.forEach(x=>{(groups[x.date]=groups[x.date]||[]).push(x);});
   const el=document.getElementById('txn-list');
@@ -664,10 +635,7 @@ function renderTxns(t){
         <div class="txn-ico" style="background:${c.color}18">${c.em}</div>
         <div class="txn-body">
           <div class="txn-name">${x.name}${x.fixed?' 🔁':''}</div>
-          <div class="txn-meta">
-            <span class="cat-pill" style="background:${c.color}18;color:${c.color}">${c.id}</span>
-            ${m?`<span class="who-pill">${m.name}</span>`:''}
-          </div>
+          <div class="txn-meta"><span class="cat-pill" style="background:${c.color}18;color:${c.color}">${c.id}</span>${m?`<span class="who-pill">${m.name}</span>`:''}</div>
         </div>
         <div class="txn-amt ${x.type==='income'?'pos':'neg'}">${x.type==='income'?'+':'-'}${yen(x.amount)}</div>
       </div>`;
@@ -677,143 +645,157 @@ function renderTxns(t){
 }
 
 function renderMembers(){
-  const t=getPeriodTxns();
   const el=document.getElementById('member-list');
-  if(!el)return;
-  if(!family.length){
-    el.innerHTML='<div style="padding:20px;text-align:center;font-size:13px;color:var(--ink3);">まだメンバーがいません</div>';
-    return;
-  }
+  if(!el) return;
+  const t=getPeriodTxns();
+  if(!family.length){el.innerHTML='<div style="padding:20px;text-align:center;font-size:13px;color:var(--ink3);">メンバーなし</div>';return;}
   el.innerHTML=family.map(m=>{
     const spend=t.filter(x=>x.who===m.id&&x.type==='expense').reduce((s,x)=>s+x.amount,0);
     const inc=t.filter(x=>x.who===m.id&&x.type==='income').reduce((s,x)=>s+x.amount,0);
-    return `<div class="member-card" style="margin-bottom:10px;">
-      <div class="avatar" style="background:${m.color}22;color:${m.color};font-size:20px;">${m.name.charAt(0)}</div>
+    const isMe=m.id===session?.userId;
+    return `<div class="member-card" onclick="openMemberDetail('${m.id}','${m.name}','${m.role}','${m.color}')">
+      <div class="avatar" style="background:${m.color}22;color:${m.color}">${m.name.charAt(0)}</div>
       <div class="member-info">
-        <div class="member-name">${m.name}</div>
-        <div class="member-role">${m.role}</div>
+        <div class="member-name">${m.name}${isMe?' (あなた)':''}</div>
+        <div class="member-role">${m.role} · ${m.role==='admin'?'管理者':'メンバー'}</div>
       </div>
-      <div style="text-align:right;">
-        <div style="font-size:13px;font-weight:700;font-family:'DM Mono',monospace;color:var(--accent);">-${yen(spend)}</div>
-        ${inc?`<div style="font-size:11px;color:var(--green);font-family:'DM Mono',monospace;">+${yen(inc)}</div>`:''}
+      <div style="text-align:right;margin-right:6px;">
+        <div style="font-size:13px;font-weight:700;font-family:'DM Mono',monospace;color:var(--accent);">${spend?'-'+yen(spend):'-'}</div>
+        ${inc?`<div style="font-size:11px;color:var(--green);">+${yen(inc)}</div>`:''}
       </div>
+      <div class="member-arrow">›</div>
     </div>`;
   }).join('');
 }
 
-// ── File / AI ──────────────────────────────
+// ── Member detail ────────────────────────────
+async function openMemberDetail(uid, name, role, color){
+  document.getElementById('detail-name').textContent=name+(uid===session?.userId?' (あなた)':'');
+  document.getElementById('detail-role').textContent=role==='admin'?'管理者':'メンバー';
+  const av=document.getElementById('detail-avatar');
+  av.textContent=name.charAt(0);
+  av.style.background=color+'22';
+  av.style.color=color;
+  document.getElementById('detail-sheet').classList.add('open');
+  document.getElementById('detail-txns').innerHTML='<div style="text-align:center;padding:24px;color:var(--ink3);font-size:13px;">読み込み中...</div>';
+  try{
+    const rows=await dbCall('getTxnsByMember',{userId:uid});
+    if(!rows.length){document.getElementById('detail-txns').innerHTML='<div style="text-align:center;padding:24px;color:var(--ink3);font-size:13px;">取引履歴なし</div>';return;}
+    const wd=['日','月','火','水','木','金','土'];
+    const groups={};
+    rows.forEach(x=>{(groups[x.date]=groups[x.date]||[]).push(x);});
+    document.getElementById('detail-txns').innerHTML=Object.entries(groups).sort((a,b)=>b[0].localeCompare(a[0])).map(([date,items])=>{
+      const dt=new Date(date+'T00:00:00');
+      const lbl=`${dt.getMonth()+1}月${dt.getDate()}日（${wd[dt.getDay()]}）`;
+      const tot=items.filter(x=>x.type==='expense').reduce((s,x)=>s+x.amount,0);
+      const rowsHtml=items.map(x=>{
+        const c=catMap[x.cat]||catMap['その他'];
+        return `<div class="txn-row" style="padding:10px 0;">
+          <div class="txn-ico" style="background:${c.color}18;width:34px;height:34px;font-size:16px;">${c.em}</div>
+          <div class="txn-body"><div class="txn-name">${x.name}</div><div class="txn-meta"><span class="cat-pill" style="background:${c.color}18;color:${c.color}">${c.id}</span></div></div>
+          <div class="txn-amt ${x.type==='income'?'pos':'neg'}">${x.type==='income'?'+':'-'}${yen(x.amount)}</div>
+        </div>`;
+      }).join('');
+      return `<div style="margin-bottom:6px;"><div style="font-size:11px;font-weight:700;color:var(--ink3);padding:6px 0;display:flex;justify-content:space-between;"><span>${lbl}</span>${tot?`<span style="color:var(--accent);">-${yen(tot)}</span>`:''}</div>${rowsHtml}</div>`;
+    }).join('');
+  }catch(e){document.getElementById('detail-txns').innerHTML='<div style="text-align:center;padding:24px;color:var(--red);font-size:13px;">読み込みに失敗しました</div>';}
+}
+function closeDetailSheet(){document.getElementById('detail-sheet').classList.remove('open');}
+
+// ── Family code ──────────────────────────────
+function showFamilyCodeSection(){
+  const sec=document.getElementById('admin-code-section');
+  if(session?.role==='admin'){
+    sec.style.display='block';
+    document.getElementById('code-display').textContent=session.familyCode;
+  } else {
+    sec.style.display='none';
+  }
+}
+function copyCode(){
+  const code=session?.familyCode||'';
+  navigator.clipboard.writeText(code).catch(()=>{
+    const ta=document.createElement('textarea');ta.value=code;document.body.appendChild(ta);ta.select();document.execCommand('copy');document.body.removeChild(ta);
+  });
+  toast('✓ コードをコピーしました: '+code);
+}
+
+// ── Page nav ─────────────────────────────────
+function goPage(pg,el){
+  document.getElementById('pg-home').style.display=pg==='home'?'':'none';
+  document.getElementById('pg-family').style.display=pg==='family'?'':'none';
+  document.querySelectorAll('.bnav-item').forEach(b=>b.classList.remove('on'));
+  el.classList.add('on');
+  document.getElementById('page-title').textContent=pg==='family'?'👨‍👩‍👧 家族':'🧾 家計簿';
+  document.getElementById('page-sub').textContent='';
+  document.getElementById('scroll').scrollTop=0;
+  if(pg==='family'){showFamilyCodeSection();renderMembers();}
+}
+
+// ── File / AI ────────────────────────────────
 function openScanSheet(){document.getElementById('scan-sheet').classList.add('open');}
-function openCamera(){closeModal('scan-sheet');document.getElementById('file-camera').click();}
-function openGallery(){closeModal('scan-sheet');document.getElementById('file-gallery').click();}
 
 async function handleFile(input){
   if(!input.files||!input.files.length)return;
   const file=input.files[0];
   input.value='';
   hideError();
-
-  // Validate it's actually an image
-  if(!file.type.startsWith('image/')){
-    showError('❌ 画像ファイルを選択してください');
-    return;
-  }
-
-  showOverlay();
-
+  if(!file.type.startsWith('image/')){showError('❌ 画像ファイルを選択してください');return;}
+  document.getElementById('overlay').classList.add('show');
   const steps=['画像を読み込み中...','文字認識（OCR）中...','商品・金額を抽出中...','カテゴリをAI分類中...','完了 ✓'];
   let si=0;
   const iv=setInterval(()=>{
     if(si<steps.length-1){
-      document.getElementById('step-list').innerHTML=steps.slice(0,si+1).map((s,j)=>
-        `<div class="${j<si?'step-done':j===si?'step-active':''}">${j<si?'✓ ':j===si?'→ ':''}${s}</div>`
-      ).join('');
+      document.getElementById('step-list').innerHTML=steps.slice(0,si+1).map((s,j)=>`<div class="${j<si?'step-done':j===si?'step-active':''}">${j<si?'✓ ':j===si?'→ ':''}${s}</div>`).join('');
       si++;
     }
   },600);
-
   try{
     const b64=await toBase64(file);
-    const mt=file.type||'image/jpeg';
-
-    const res=await fetch('/api/analyze',{
-      method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({imageBase64:b64,mediaType:mt})
-    });
-
+    const res=await fetch('/api/analyze',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({imageBase64:b64,mediaType:'image/jpeg'})});
     clearInterval(iv);
-
-    if(!res.ok){
-      const err=await res.json().catch(()=>({error:'サーバーエラー'}));
-      throw new Error(err.error||`HTTP ${res.status}`);
-    }
-
+    if(!res.ok){const e=await res.json().catch(()=>({error:'サーバーエラー'}));throw new Error(e.error||`HTTP ${res.status}`);}
     const data=await res.json();
-    hideOverlay();
-    showSheet(data);
+    document.getElementById('overlay').classList.remove('show');
+    showReceiptSheet(data);
   }catch(e){
     clearInterval(iv);
-    hideOverlay();
-    showError(`❌ エラー: ${e.message}`);
+    document.getElementById('overlay').classList.remove('show');
+    showError('❌ '+e.message);
   }
 }
 
 function toBase64(file){
   return new Promise((res,rej)=>{
-    // Compress image before sending to avoid server size limits
     const img=new Image();
     const url=URL.createObjectURL(file);
     img.onload=()=>{
       URL.revokeObjectURL(url);
-      const MAX=1200;
-      let w=img.width, h=img.height;
-      if(w>MAX||h>MAX){
-        if(w>h){h=Math.round(h*MAX/w);w=MAX;}
-        else{w=Math.round(w*MAX/h);h=MAX;}
-      }
-      const canvas=document.createElement('canvas');
-      canvas.width=w; canvas.height=h;
-      const ctx=canvas.getContext('2d');
-      ctx.drawImage(img,0,0,w,h);
-      // Use JPEG with 0.85 quality for smaller size
-      const data=canvas.toDataURL('image/jpeg',0.85).split(',')[1];
-      res(data);
+      const MAX=1200;let w=img.width,h=img.height;
+      if(w>MAX||h>MAX){if(w>h){h=Math.round(h*MAX/w);w=MAX;}else{w=Math.round(w*MAX/h);h=MAX;}}
+      const canvas=document.createElement('canvas');canvas.width=w;canvas.height=h;
+      canvas.getContext('2d').drawImage(img,0,0,w,h);
+      res(canvas.toDataURL('image/jpeg',0.85).split(',')[1]);
     };
     img.onerror=()=>rej(new Error('画像の読み込みに失敗しました'));
     img.src=url;
   });
 }
 
-function showOverlay(){document.getElementById('overlay').classList.add('show');}
-function hideOverlay(){document.getElementById('overlay').classList.remove('show');}
-function showError(msg){const e=document.getElementById('error-box');e.textContent=msg;e.classList.add('show');}
-function hideError(){document.getElementById('error-box').classList.remove('show');}
-
-// ── Sheet ──────────────────────────────────
-function showSheet(receipt){
+// ── Receipt sheet ────────────────────────────
+function showReceiptSheet(receipt){
   pendingReceipt=receipt;
   document.getElementById('sh-store').textContent=receipt.store||'不明';
   document.getElementById('sh-date').textContent=receipt.date||'';
   document.getElementById('sh-total').textContent=yen(receipt.total||0);
-  const items=(receipt.items||[]);
-  document.getElementById('sh-items').innerHTML=items.map(item=>{
+  document.getElementById('sh-items').innerHTML=(receipt.items||[]).map(item=>{
     const c=catMap[item.cat]||catMap['その他'];
-    return `<div class="item-row">
-      <div class="item-em">${item.em||c.em}</div>
-      <div class="item-body"><div class="item-name">${item.name}</div><div class="item-qty">${item.qty||''}</div></div>
-      <span class="item-cat-badge" style="background:${c.color}18;color:${c.color}">${item.cat}</span>
-      <div class="item-price">${yen(item.price||0)}</div>
-    </div>`;
+    return `<div class="item-row"><div class="item-em">${item.em||c.em}</div><div class="item-body"><div class="item-name">${item.name}</div><div class="item-qty">${item.qty||''}</div></div><span class="item-cat-badge" style="background:${c.color}18;color:${c.color}">${item.cat}</span><div class="item-price">${yen(item.price||0)}</div></div>`;
   }).join('');
-  document.getElementById('sheet-bg').classList.add('open');
+  document.getElementById('receipt-sheet').classList.add('open');
 }
-
-function closeSheet(){
-  document.getElementById('sheet-bg').classList.remove('open');
-  pendingReceipt=null;
-}
-
-function sheetBgClick(e){if(e.target===document.getElementById('sheet-bg'))closeSheet();}
+function closeReceiptSheet(){document.getElementById('receipt-sheet').classList.remove('open');pendingReceipt=null;}
+function sheetBgClick(e){if(e.target===document.getElementById('receipt-sheet'))closeReceiptSheet();}
 
 async function confirmSheet(){
   if(!pendingReceipt)return;
@@ -821,45 +803,27 @@ async function confirmSheet(){
   const items=(pendingReceipt.items||[]).filter(item=>!(item.cat==='その他'&&item.name.includes('消費税')));
   try{
     for(const item of items){
-      const txn={date:today,name:`${pendingReceipt.store} — ${item.name}`,
-        amount:item.price||0,type:'expense',cat:item.cat||'その他',
-        who:family[0]?.id||'f1',fixed:false};
+      const txn={date:today,name:`${pendingReceipt.store} — ${item.name}`,amount:item.price||0,type:'expense',cat:item.cat||'その他',who:session.userId,fixed:false};
       const saved=await dbCall('addTxn',txn);
       txns.unshift({...txn,id:saved.id});
     }
-    closeSheet();renderAll();
+    closeReceiptSheet();renderAll();
     toast(`✓ ${pendingReceipt.store}を登録しました（${items.length}件）`);
   }catch(e){toast('⚠ 保存に失敗しました');}
 }
 
-// ── Add manual ─────────────────────────────
+// ── Add manual ───────────────────────────────
 function openAdd(){
-  buildCatGrid();
-  setType('expense');
+  buildCatGrid();setType('expense');
   document.getElementById('a-date').value=new Date().toISOString().split('T')[0];
-  document.getElementById('a-amt').value='';
-  document.getElementById('a-name').value='';
-  document.getElementById('a-who').innerHTML=family.map(m=>`<option value="${m.id}">${m.name}</option>`).join('');
+  document.getElementById('a-amt').value='';document.getElementById('a-name').value='';
+  document.getElementById('a-who').innerHTML=family.map(m=>`<option value="${m.id}"${m.id===session?.userId?' selected':''}>${m.name}</option>`).join('');
   document.getElementById('add-modal').classList.add('open');
 }
-function closeAdd(){document.getElementById('add-modal').classList.remove('open');}
-function modalBgClick(e){if(e.target===document.getElementById('add-modal'))closeAdd();}
+function setType(t){selType2=t;document.getElementById('tb-exp').className='type-btn'+(t==='expense'?' on-exp':'');document.getElementById('tb-inc').className='type-btn'+(t==='income'?' on-inc':'');}
+function buildCatGrid(){document.getElementById('cat-grid').innerHTML=CATS.map(c=>`<button class="cat-opt${c.id===selCat?' sel':''}" onclick="pickCat('${c.id}',this)"><span class="cat-em">${c.em}</span>${c.id}</button>`).join('');}
+function pickCat(id,el){selCat=id;document.querySelectorAll('.cat-opt').forEach(b=>b.classList.remove('sel'));el.classList.add('sel');}
 
-function setType(t){
-  selType2=t;
-  document.getElementById('tb-exp').className='type-btn'+(t==='expense'?' on-exp':'');
-  document.getElementById('tb-inc').className='type-btn'+(t==='income'?' on-inc':'');
-}
-function buildCatGrid(){
-  document.getElementById('cat-grid').innerHTML=CATS.map(c=>
-    `<button class="cat-opt${c.id===selCat?' sel':''}" onclick="pickCat('${c.id}',this)">
-      <span class="cat-em">${c.em}</span>${c.id}</button>`).join('');
-}
-function pickCat(id,el){
-  selCat=id;
-  document.querySelectorAll('.cat-opt').forEach(b=>b.classList.remove('sel'));
-  el.classList.add('sel');
-}
 async function submitAdd(){
   const amt=parseInt(document.getElementById('a-amt').value);
   const name=document.getElementById('a-name').value.trim();
@@ -867,121 +831,47 @@ async function submitAdd(){
   const who=document.getElementById('a-who').value;
   const fixed=document.getElementById('a-fixed').checked;
   if(!amt||!name||!date){toast('⚠ 金額・内容・日付を入力してください');return;}
-  const txn={date,name,amount:amt,type:selType2,cat:selCat,who,fixed};
-  try {
-    const saved = await dbCall('addTxn', txn);
-    txns.unshift({...txn, id: saved.id});
-    closeAdd(); renderAll();
-    toast('✓ 登録しました');
-  } catch(e) { toast('⚠ 保存に失敗しました'); }
-}
-
-// ── Family ─────────────────────────────────
-function openAddMember(){
-  document.getElementById('m-name').value='';
-  selColor=COLORS[0];
-  document.getElementById('color-row').innerHTML=COLORS.map(c=>
-    `<div onclick="pickColor('${c}',this)" style="width:32px;height:32px;border-radius:50%;background:${c};cursor:pointer;border:3px solid ${c===selColor?'var(--ink)':'transparent'};transition:border-color .15s;"></div>`
-  ).join('');
-  document.getElementById('member-modal').classList.add('open');
-}
-function pickColor(c,el){
-  selColor=c;
-  document.querySelectorAll('#color-row div').forEach(d=>d.style.borderColor='transparent');
-  el.style.borderColor='var(--ink)';
-}
-async function submitMember(){
-  const name=document.getElementById('m-name').value.trim();
-  const role=document.getElementById('m-role').value;
-  if(!name){toast('⚠ 名前を入力してください');return;}
-  const m={id:'m'+Date.now(),name,role,color:selColor};
   try{
-    await dbCall('addMember',m);
-    family.push(m);
-    closeModal('member-modal');
-    renderFamily();renderAll();
-    toast(`✓ ${name}を追加しました`);
+    const txn={date,name,amount:amt,type:selType2,cat:selCat,who,fixed};
+    const saved=await dbCall('addTxn',txn);
+    txns.unshift({...txn,id:saved.id});
+    closeModal('add-modal');renderAll();toast('✓ 登録しました');
   }catch(e){toast('⚠ 保存に失敗しました');}
 }
-function closeModal(id){document.getElementById(id).classList.remove('open');}
 
-// ── Page nav ───────────────────────────────
-function goPage(pg,el){
-  document.getElementById('pg-home').style.display=pg==='home'?'':'none';
-  document.getElementById('pg-family').style.display=pg==='family'?'':'none';
-  document.querySelectorAll('.bnav-item').forEach(b=>b.classList.remove('on'));
-  el.classList.add('on');
-  document.getElementById('page-title').textContent=pg==='family'?'👨‍👩‍👧 家族・共有':'🧾 家計簿';
-  document.getElementById('page-sub').textContent='';
-  document.getElementById('scroll').scrollTop=0;
-  if(pg==='family') showFamilyCode();
-}
-
-// ── Toast ──────────────────────────────────
-function toast(msg){
-  const t=document.getElementById('toast');
-  t.textContent=msg;t.classList.add('show');
-  setTimeout(()=>t.classList.remove('show'),2500);
-}
-
-// ── Income modal ───────────────────────────
+// ── Income modal ─────────────────────────────
 function openIncomeModal(){
+  if(session?.role!=='admin'){toast('⚠ 管理者のみ収入を編集できます');return;}
   const t=getPeriodTxns();
   const incomes=t.filter(x=>x.type==='income');
-  // If no income entries yet, start with one blank
-  const items=incomes.length>0
-    ? incomes.map(x=>({id:x.id,name:x.name,amount:x.amount,who:x.who}))
-    : [{id:null,name:'給料',amount:'',who:family[0]?.id||'f1'}];
+  const items=incomes.length?incomes.map(x=>({id:x.id,name:x.name,amount:x.amount})):[{id:null,name:'給料',amount:''}];
   renderIncItems(items);
   document.getElementById('income-modal').classList.add('open');
 }
-
 function renderIncItems(items){
   document.getElementById('inc-items-list').innerHTML=items.map((item,i)=>`
     <div class="inc-item" id="inc-row-${i}">
-      <input class="inc-item-input" placeholder="名前（例: 給料）" value="${item.name||''}"
-        style="max-width:110px;" id="inc-name-${i}">
-      <input class="inc-item-input" type="number" inputmode="numeric"
-        placeholder="金額" value="${item.amount||''}" id="inc-amt-${i}">
+      <input class="inc-item-input" placeholder="名前" value="${item.name||''}" style="max-width:110px;" id="inc-name-${i}">
+      <input class="inc-item-input" type="number" inputmode="numeric" placeholder="金額" value="${item.amount||''}" id="inc-amt-${i}">
       <button class="inc-item-del" onclick="removeIncRow(${i})">×</button>
     </div>`).join('');
-  // store count for add
   document.getElementById('inc-items-list').dataset.count=items.length;
 }
-
 function addIncItem(){
   const list=document.getElementById('inc-items-list');
   const count=parseInt(list.dataset.count||0);
-  const div=document.createElement('div');
-  div.className='inc-item';
-  div.id=`inc-row-${count}`;
-  div.innerHTML=`
-    <input class="inc-item-input" placeholder="名前（例: 副業）" style="max-width:110px;" id="inc-name-${count}">
-    <input class="inc-item-input" type="number" inputmode="numeric" placeholder="金額" id="inc-amt-${count}">
-    <button class="inc-item-del" onclick="removeIncRow(${count})">×</button>`;
-  list.appendChild(div);
-  list.dataset.count=count+1;
+  const div=document.createElement('div');div.className='inc-item';div.id=`inc-row-${count}`;
+  div.innerHTML=`<input class="inc-item-input" placeholder="名前" style="max-width:110px;" id="inc-name-${count}"><input class="inc-item-input" type="number" inputmode="numeric" placeholder="金額" id="inc-amt-${count}"><button class="inc-item-del" onclick="removeIncRow(${count})">×</button>`;
+  list.appendChild(div);list.dataset.count=count+1;
 }
-
-function removeIncRow(i){
-  const row=document.getElementById(`inc-row-${i}`);
-  if(row) row.remove();
-}
-
+function removeIncRow(i){const r=document.getElementById(`inc-row-${i}`);if(r)r.remove();}
 async function submitIncome(){
   const list=document.getElementById('inc-items-list');
   const rows=list.querySelectorAll('.inc-item');
   if(!rows.length){toast('⚠ 収入を入力してください');return;}
-
-  // Delete existing income for this period from DB
   const periodT=getPeriodTxns();
   const incIds=periodT.filter(x=>x.type==='income').map(x=>x.id);
-  if(incIds.length){
-    try{ await dbCall('deleteTxns',{ids:incIds}); }catch(e){}
-    txns=txns.filter(x=>!incIds.includes(x.id));
-  }
-
-  // Add new ones
+  if(incIds.length){try{await dbCall('deleteTxns',{ids:incIds});}catch(e){}txns=txns.filter(x=>!incIds.includes(x.id));}
   const today=new Date().toISOString().split('T')[0];
   let added=0;
   for(const row of rows){
@@ -989,85 +879,17 @@ async function submitIncome(){
     const name=document.getElementById(`inc-name-${idx}`)?.value.trim()||'収入';
     const amt=parseInt(document.getElementById(`inc-amt-${idx}`)?.value||'0');
     if(amt>0){
-      const txn={date:today,name,amount:amt,type:'income',cat:'収入',who:family[0]?.id||'f1',fixed:false};
-      try{
-        const saved=await dbCall('addTxn',txn);
-        txns.unshift({...txn,id:saved.id});
-        added++;
-      }catch(e){}
+      const txn={date:today,name,amount:amt,type:'income',cat:'収入',who:session.userId,fixed:false};
+      try{const saved=await dbCall('addTxn',txn);txns.unshift({...txn,id:saved.id});added++;}catch(e){}
     }
   }
-
-  closeModal('income-modal');
-  renderAll();
-  toast(`✓ 収入を更新しました（${added}件）`);
+  closeModal('income-modal');renderAll();toast(`✓ 収入を更新しました（${added}件）`);
 }
 
-// ── Family code share UI ────────────────────
-function showFamilyCode(){
-  const el = document.getElementById('family-code-display');
-  if (el) el.textContent = familyCode;
+// ── Init ─────────────────────────────────────
+if(session?.token){
+  startApp();
 }
-
-function copyFamilyCode(){
-  navigator.clipboard.writeText(familyCode).then(()=>{
-    toast('✓ コードをコピーしました: ' + familyCode);
-  }).catch(()=>{
-    // fallback for older iOS
-    const ta = document.createElement('textarea');
-    ta.value = familyCode;
-    document.body.appendChild(ta);
-    ta.select();
-    document.execCommand('copy');
-    document.body.removeChild(ta);
-    toast('✓ コードをコピーしました: ' + familyCode);
-  });
-}
-
-async function joinWithCode(){
-  const input = document.getElementById('join-code-input');
-  const code = (input?.value||'').trim().toUpperCase();
-  if(code.length < 4){ toast('⚠ コードを入力してください'); return; }
-  if(code === familyCode){ toast('⚠ 自分のコードです'); return; }
-
-  if(!confirm(`コード「${code}」の家族に参加しますか？\n現在のデータは引き継がれません。`)) return;
-
-  // Verify code exists by trying to fetch members
-  try {
-    showLoading(true);
-    const res = await fetch('/api/db', {
-      method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({action:'getMembers', familyCode:code, data:{}})
-    });
-    const members = await res.json();
-
-    // Switch to new family code
-    localStorage.setItem('kakeibo_family_code', code);
-    familyCode = code;
-    family = []; txns = [];
-
-    await loadFromDB();
-    renderFamily();
-    renderAll();
-    showFamilyCode();
-    if(input) input.value = '';
-    toast('✓ 家族に参加しました！データを共有しています');
-  } catch(e) {
-    toast('⚠ 参加に失敗しました。コードを確認してください');
-  } finally {
-    showLoading(false);
-  }
-}
-
-// ── Init ───────────────────────────────────
-(async()=>{
-  document.getElementById('page-sub').textContent=
-    `${now.getFullYear()}年${now.getMonth()+1}月${now.getDate()}日`;
-  await initFamily();
-  renderFamily();
-  renderAll();
-})();
 </script>
 </body>
 </html>
