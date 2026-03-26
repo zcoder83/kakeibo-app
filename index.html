@@ -67,6 +67,16 @@ body{font-family:'Noto Sans JP',sans-serif;color:var(--ink);}
 .sum-card.inc .sum-val{color:var(--green);}
 .sum-card.bal .sum-val{color:var(--blue);}
 .sum-card.fix .sum-val{color:var(--amber);}
+.sum-card.inc{cursor:pointer;transition:all .15s;}
+.sum-card.inc:active{background:var(--green-l);border-color:rgba(45,122,79,.3);}
+.edit-hint{font-size:10px;color:var(--green);margin-top:3px;opacity:.7;}
+.inc-modal-body{padding:20px 18px;}
+.inc-item{display:flex;align-items:center;gap:10px;margin-bottom:12px;}
+.inc-item-label{font-size:13px;font-weight:600;color:var(--ink2);min-width:80px;}
+.inc-item-input{flex:1;padding:11px 14px;border-radius:var(--rsm);background:var(--surface2);border:1px solid var(--border2);color:var(--ink);font-size:15px;font-family:inherit;outline:none;-webkit-appearance:none;}
+.inc-item-input:focus{border-color:var(--green);}
+.inc-item-del{width:32px;height:32px;border-radius:50%;background:var(--red-l);border:none;color:var(--red);font-size:16px;cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center;}
+.add-inc-btn{width:100%;padding:11px;border-radius:var(--rsm);background:var(--green-l);border:1px dashed rgba(45,122,79,.4);color:var(--green);font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;margin-top:4px;}
 
 /* ── Upload button ── */
 .scan-btn{
@@ -289,7 +299,11 @@ body{font-family:'Noto Sans JP',sans-serif;color:var(--ink);}
       <!-- Summary -->
       <div class="sum-row">
         <div class="sum-card exp"><div class="sum-lbl">支出</div><div class="sum-val" id="s-exp">¥0</div></div>
-        <div class="sum-card inc"><div class="sum-lbl">収入</div><div class="sum-val" id="s-inc">¥0</div></div>
+        <div class="sum-card inc" onclick="openIncomeModal()">
+          <div class="sum-lbl">収入</div>
+          <div class="sum-val" id="s-inc">¥0</div>
+          <div class="edit-hint">タップして編集 ✎</div>
+        </div>
         <div class="sum-card bal"><div class="sum-lbl">残高</div><div class="sum-val" id="s-bal">¥0</div></div>
         <div class="sum-card fix"><div class="sum-lbl">固定費</div><div class="sum-val" id="s-fix">¥0</div></div>
       </div>
@@ -388,6 +402,22 @@ body{font-family:'Noto Sans JP',sans-serif;color:var(--ink);}
       </div>
     </div>
     <div class="modal-footer"><button class="btn-confirm" onclick="submitMember()">追加する</button></div>
+  </div>
+</div>
+
+<!-- Income edit modal -->
+<div class="modal-bg" id="income-modal" onclick="if(event.target===this)closeModal('income-modal')">
+  <div class="modal" style="max-height:80vh;">
+    <div class="modal-hd">
+      <h3>💰 収入を編集</h3>
+      <button class="modal-close" onclick="closeModal('income-modal')">×</button>
+    </div>
+    <div class="inc-modal-body">
+      <div style="font-size:12px;color:var(--ink3);margin-bottom:14px;">今月の収入を入力してください。複数ある場合は追加できます。</div>
+      <div id="inc-items-list"></div>
+      <button class="add-inc-btn" onclick="addIncItem()">＋ 収入を追加</button>
+    </div>
+    <div class="modal-footer"><button class="btn-confirm" onclick="submitIncome()">保存する</button></div>
   </div>
 </div>
 
@@ -728,6 +758,78 @@ function toast(msg){
   const t=document.getElementById('toast');
   t.textContent=msg;t.classList.add('show');
   setTimeout(()=>t.classList.remove('show'),2500);
+}
+
+// ── Income modal ───────────────────────────
+function openIncomeModal(){
+  const t=getPeriodTxns();
+  const incomes=t.filter(x=>x.type==='income');
+  // If no income entries yet, start with one blank
+  const items=incomes.length>0
+    ? incomes.map(x=>({id:x.id,name:x.name,amount:x.amount,who:x.who}))
+    : [{id:null,name:'給料',amount:'',who:family[0]?.id||'f1'}];
+  renderIncItems(items);
+  document.getElementById('income-modal').classList.add('open');
+}
+
+function renderIncItems(items){
+  document.getElementById('inc-items-list').innerHTML=items.map((item,i)=>`
+    <div class="inc-item" id="inc-row-${i}">
+      <input class="inc-item-input" placeholder="名前（例: 給料）" value="${item.name||''}"
+        style="max-width:110px;" id="inc-name-${i}">
+      <input class="inc-item-input" type="number" inputmode="numeric"
+        placeholder="金額" value="${item.amount||''}" id="inc-amt-${i}">
+      <button class="inc-item-del" onclick="removeIncRow(${i})">×</button>
+    </div>`).join('');
+  // store count for add
+  document.getElementById('inc-items-list').dataset.count=items.length;
+}
+
+function addIncItem(){
+  const list=document.getElementById('inc-items-list');
+  const count=parseInt(list.dataset.count||0);
+  const div=document.createElement('div');
+  div.className='inc-item';
+  div.id=`inc-row-${count}`;
+  div.innerHTML=`
+    <input class="inc-item-input" placeholder="名前（例: 副業）" style="max-width:110px;" id="inc-name-${count}">
+    <input class="inc-item-input" type="number" inputmode="numeric" placeholder="金額" id="inc-amt-${count}">
+    <button class="inc-item-del" onclick="removeIncRow(${count})">×</button>`;
+  list.appendChild(div);
+  list.dataset.count=count+1;
+}
+
+function removeIncRow(i){
+  const row=document.getElementById(`inc-row-${i}`);
+  if(row) row.remove();
+}
+
+function submitIncome(){
+  const list=document.getElementById('inc-items-list');
+  const rows=list.querySelectorAll('.inc-item');
+  if(!rows.length){toast('⚠ 収入を入力してください');return;}
+
+  // Remove existing income txns for this period
+  const periodT=getPeriodTxns();
+  const incIds=new Set(periodT.filter(x=>x.type==='income').map(x=>x.id));
+  txns=txns.filter(x=>!incIds.has(x.id));
+
+  // Add new ones
+  const today=new Date().toISOString().split('T')[0];
+  let added=0;
+  rows.forEach(row=>{
+    const idx=row.id.replace('inc-row-','');
+    const name=document.getElementById(`inc-name-${idx}`)?.value.trim()||'収入';
+    const amt=parseInt(document.getElementById(`inc-amt-${idx}`)?.value||'0');
+    if(amt>0){
+      txns.unshift({id:nextId++,date:today,name,amount:amt,type:'income',cat:'収入',who:family[0]?.id||'f1',fixed:false});
+      added++;
+    }
+  });
+
+  closeModal('income-modal');
+  renderAll();
+  toast(`✓ 収入を更新しました（${added}件）`);
 }
 
 // ── Init ───────────────────────────────────
