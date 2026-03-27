@@ -458,7 +458,9 @@ body{font-family:'Noto Sans JP',sans-serif;color:var(--ink);}
       <div id="inc-items-list"></div>
       <button class="add-inc-btn" onclick="addIncItem()">＋ 収入を追加</button>
     </div>
-    <div class="modal-footer"><button class="btn-confirm" onclick="submitIncome()">保存する</button></div>
+    <div class="modal-footer" style="padding-bottom:calc(env(safe-area-inset-bottom) + 24px);">
+      <button class="btn-confirm" onclick="submitIncome()">保存する</button>
+    </div>
   </div>
 </div>
 
@@ -471,7 +473,7 @@ body{font-family:'Noto Sans JP',sans-serif;color:var(--ink);}
       <div id="fixed-list"></div>
       <button class="add-inc-btn" onclick="openAddFixed()" style="background:var(--amber-l);border-color:rgba(184,112,0,.3);color:var(--amber);">＋ 固定費を追加</button>
     </div>
-    <div style="padding:14px 18px;border-top:1px solid var(--border);padding-bottom:calc(var(--safe-bot)+14px);">
+    <div style="padding:14px 18px;border-top:1px solid var(--border);padding-bottom:calc(env(safe-area-inset-bottom) + 24px);">
       <div style="display:flex;justify-content:space-between;align-items:center;font-size:13px;color:var(--ink2);">
         <span>合計</span>
         <span style="font-size:18px;font-weight:700;font-family:'DM Mono',monospace;color:var(--amber);" id="fixed-total-display">¥0</span>
@@ -1372,21 +1374,41 @@ async function submitIncome(){
   const list=document.getElementById('inc-items-list');
   const rows=list.querySelectorAll('.inc-item');
   if(!rows.length){toast('⚠ 収入を入力してください');return;}
-  const periodT=getPeriodTxns();
-  const incIds=periodT.filter(x=>x.type==='income').map(x=>x.id);
-  if(incIds.length){try{await dbCall('deleteTxns',{ids:incIds});}catch(e){}txns=txns.filter(x=>!incIds.includes(x.id));}
-  const today=new Date().toISOString().split('T')[0];
-  let added=0;
-  for(const row of rows){
-    const idx=row.id.replace('inc-row-','');
-    const name=document.getElementById(`inc-name-${idx}`)?.value.trim()||'収入';
-    const amt=parseInt(document.getElementById(`inc-amt-${idx}`)?.value||'0');
-    if(amt>0){
-      const txn={date:today,name,amount:amt,type:'income',cat:'収入',who:session.userId,fixed:false,excluded:false};
-      try{const saved=await dbCall('addTxn',txn);txns.unshift({...txn,id:saved.id});added++;}catch(e){}
+
+  // 저장 버튼 로딩 상태
+  const btn=document.querySelector('#income-modal .btn-confirm');
+  if(btn){btn.textContent='保存中...';btn.disabled=true;}
+
+  try{
+    // 기존 수입 삭제
+    const periodT=getPeriodTxns();
+    const incIds=periodT.filter(x=>x.type==='income').map(x=>x.id);
+    if(incIds.length){
+      await dbCall('deleteTxns',{ids:incIds});
+      txns=txns.filter(x=>!incIds.includes(x.id));
     }
+    // 새 수입 저장
+    const today=new Date().toISOString().split('T')[0];
+    let added=0;
+    for(const row of rows){
+      const idx=row.id.replace('inc-row-','');
+      const name=document.getElementById(`inc-name-${idx}`)?.value.trim()||'収入';
+      const amt=parseInt(document.getElementById(`inc-amt-${idx}`)?.value||'0');
+      if(amt>0){
+        const txn={date:today,name,amount:amt,type:'income',cat:'収入',who:session.userId,fixed:false,excluded:false};
+        const saved=await dbCall('addTxn',txn);
+        txns.unshift({...txn,id:saved.id});
+        added++;
+      }
+    }
+    closeModal('income-modal');
+    renderAll();
+    toast(added>0?`✓ 収入を保存しました（${added}件）`:'⚠ 金額を入力してください');
+  }catch(e){
+    toast('⚠ 保存に失敗しました: '+e.message);
+  }finally{
+    if(btn){btn.textContent='保存する';btn.disabled=false;}
   }
-  closeModal('income-modal');renderAll();toast(`✓ 収入を更新しました（${added}件）`);
 }
 
 // ── Category Modal ───────────────────────────
@@ -1462,6 +1484,23 @@ async function doReset(){
 
 // ── Init ─────────────────────────────────────
 if(session?.token) startApp();
+
+// Service Worker 등록 (PWA 자동 업데이트)
+if('serviceWorker' in navigator){
+  navigator.serviceWorker.register('/sw.js').then(reg=>{
+    // 새 버전이 있으면 즉시 업데이트
+    reg.addEventListener('updatefound',()=>{
+      const newWorker=reg.installing;
+      newWorker.addEventListener('statechange',()=>{
+        if(newWorker.state==='installed'&&navigator.serviceWorker.controller){
+          // 새 버전 감지 — 자동으로 새로고침
+          toast('✓ アプリを最新バージョンに更新しました');
+          setTimeout(()=>location.reload(),1500);
+        }
+      });
+    });
+  }).catch(e=>console.log('SW error:',e));
+}
 </script>
 </body>
 </html>
