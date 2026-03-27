@@ -707,22 +707,19 @@ function doLogout(){
 async function dbCall(action,data={}){
   const res=await fetch('/api/db',{method:'POST',headers:{'Content-Type':'application/json'},
     body:JSON.stringify({action,familyCode:session.familyCode,token:session.token,data})});
-  // 401이면 토큰 갱신 시도
   if(res.status===401||res.status===403){
     const refreshed=await tryRefreshToken();
     if(refreshed){
-      // 재시도
       const res2=await fetch('/api/db',{method:'POST',headers:{'Content-Type':'application/json'},
         body:JSON.stringify({action,familyCode:session.familyCode,token:session.token,data})});
-      if(!res2.ok) throw new Error('DB error');
+      if(!res2.ok){const e=await res2.json().catch(()=>({}));throw new Error(e.error||`HTTP ${res2.status}`);}
       return res2.json();
-    } else {
-      // 갱신 실패 → 로그아웃
-      forceLogout();
-      throw new Error('Session expired');
-    }
+    }else{forceLogout();throw new Error('Session expired');}
   }
-  if(!res.ok) throw new Error('DB error');
+  if(!res.ok){
+    const e=await res.json().catch(()=>({}));
+    throw new Error(e.error||`HTTP ${res.status} on ${action}`);
+  }
   return res.json();
 }
 
@@ -1375,7 +1372,6 @@ async function submitIncome(){
   const rows=list.querySelectorAll('.inc-item');
   if(!rows.length){toast('⚠ 収入を入力してください');return;}
 
-  // 저장 버튼 로딩 상태
   const btn=document.querySelector('#income-modal .btn-confirm');
   if(btn){btn.textContent='保存中...';btn.disabled=true;}
 
@@ -1387,13 +1383,17 @@ async function submitIncome(){
       await dbCall('deleteTxns',{ids:incIds});
       txns=txns.filter(x=>!incIds.includes(x.id));
     }
+
     // 새 수입 저장
     const today=new Date().toISOString().split('T')[0];
     let added=0;
     for(const row of rows){
       const idx=row.id.replace('inc-row-','');
-      const name=document.getElementById(`inc-name-${idx}`)?.value.trim()||'収入';
-      const amt=parseInt(document.getElementById(`inc-amt-${idx}`)?.value||'0');
+      const nameEl=document.getElementById(`inc-name-${idx}`);
+      const amtEl=document.getElementById(`inc-amt-${idx}`);
+      if(!nameEl||!amtEl) continue;
+      const name=nameEl.value.trim()||'収入';
+      const amt=parseInt(amtEl.value||'0');
       if(amt>0){
         const txn={date:today,name,amount:amt,type:'income',cat:'収入',who:session.userId,fixed:false,excluded:false};
         const saved=await dbCall('addTxn',txn);
@@ -1401,11 +1401,13 @@ async function submitIncome(){
         added++;
       }
     }
+
     closeModal('income-modal');
     renderAll();
     toast(added>0?`✓ 収入を保存しました（${added}件）`:'⚠ 金額を入力してください');
   }catch(e){
-    toast('⚠ 保存に失敗しました: '+e.message);
+    toast('エラー: '+String(e.message||e));
+    console.error('submitIncome error:', e);
   }finally{
     if(btn){btn.textContent='保存する';btn.disabled=false;}
   }
