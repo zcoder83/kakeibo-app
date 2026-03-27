@@ -1380,10 +1380,10 @@ async function submitIncome(){
   if(btn){btn.textContent='保存中...';btn.disabled=true;}
 
   try{
-    // 기존 수입 삭제
+    // 기존 수입 삭제 (있을 때만)
     const periodT=getPeriodTxns();
     const incIds=periodT.filter(x=>x.type==='income').map(x=>x.id);
-    if(incIds.length){
+    if(incIds.length>0){
       await dbCall('deleteTxns',{ids:incIds});
       txns=txns.filter(x=>!incIds.includes(x.id));
     }
