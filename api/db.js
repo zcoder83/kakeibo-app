@@ -53,6 +53,7 @@ export default async function handler(req, res) {
         return res.json({ ok: true });
       }
       case 'deleteTxns': {
+        if (!data.ids || !data.ids.length) return res.json({ ok: true });
         await sb('DELETE', 'transactions', null,
           `?id=in.(${data.ids.join(',')})&family_code=eq.${familyCode}`, true);
         return res.json({ ok: true });
